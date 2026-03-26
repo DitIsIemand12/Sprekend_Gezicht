@@ -7,11 +7,11 @@
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
-        body { font-family: -apple-system, sans-serif; background: #f0f0f2; padding: 20px; color: #333; }
+        body { font-family: -apple-system, sans-serif; background: #f0f0f2; padding: 20px; }
         .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        button { width: 100%; padding: 15px; margin: 10px 0; border: none; border-radius: 10px; font-weight: bold; font-size: 16px; cursor: pointer; }
-        .btn-evil { background: #ff3b30; color: white; }
-        .btn-happy { background: #007aff; color: white; }
+        button { width: 100%; padding: 15px; margin: 10px 0; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; color: white; font-size: 16px; }
+        .btn-evil { background: #ff3b30; }
+        .btn-happy { background: #007aff; }
         input { width: 100%; padding: 15px; border: 1px solid #ccc; border-radius: 10px; font-size: 16px; box-sizing: border-box; }
     </style>
 </head>
@@ -42,7 +42,10 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        function setEmo(e) { db.ref('tablet_emotion').set(e); }
+        function setEmo(e) { 
+            db.ref('tablet_emotion').set(e); 
+        }
+
         function say() {
             const v = document.getElementById('t').value;
             if(v) {
