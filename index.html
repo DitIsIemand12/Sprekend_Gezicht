@@ -2,7 +2,7 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <title>iPad Pro - Final Boss Edition</title>
+    <title>iPad Pro - Final Boss v2</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
@@ -13,7 +13,6 @@
 
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg); overflow: hidden; display: flex; justify-content: center; align-items: center; font-family: sans-serif; transition: background 0.5s; }
         
-        /* De lagen */
         #face-wrapper { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 5; transform: scale(1.2); transition: all 0.5s ease; }
         #particle-canvas { position: absolute; inset: 0; z-index: 10; pointer-events: none; }
 
@@ -32,8 +31,8 @@
         .angry .eyebrow.l { transform: rotate(22deg) translateY(65px); }
         .angry .eyebrow.r { transform: rotate(-22deg) translateY(65px); }
 
-        /* SLURPEN: Mond als zwart gat, hoog op het scherm */
-        .slurpen { --bg: #000; --m-x: 200px; --m-y: -150px; --m-h: 250px; --m-w: 250px; --accent: #000; }
+        /* SLURPEN: Mond lager en naar rechts (Fix: m-y aangepast naar 80px) */
+        .slurpen { --bg: #000; --m-x: 200px; --m-y: 80px; --m-h: 250px; --m-w: 250px; --accent: #000; }
         .slurpen .mouth { border: 15px solid #0f0; box-shadow: 0 0 100px #0f0; border-radius: 50%; }
         .slurpen .pupil { transform: translate(50px, 40px) scale(1.2); }
 
@@ -45,6 +44,10 @@
 
         .blink .eye { transform: scaleY(0.05); }
         #overlay { position: fixed; inset: 0; background: #000; color: #0f0; display: flex; justify-content: center; align-items: center; z-index: 1000; cursor: pointer; font-size: 30px; font-weight: bold; font-family: monospace; }
+
+        /* Animatie voor het slurpen moet ook naar de nieuwe m-y positie */
+        @keyframes suck { from { transform: translate(200px, 80px) scale(0.95); } to { transform: translate(200px, 80px) scale(1.05); } }
+        .slurpen .mouth { animation: suck 0.2s infinite alternate; }
     </style>
 </head>
 <body class="angry">
@@ -88,56 +91,39 @@
                 this.x = canvas.width + Math.random() * 500;
                 this.y = canvas.height + Math.random() * 500;
                 this.size = Math.random() * 8 + 4;
-                this.history = []; // Voor de staart
+                this.history = [];
                 this.speed = Math.random() * 0.1 + 0.05;
                 this.color = Math.random() > 0.2 ? '#0f0' : '#fff';
             }
             update(tx, ty) {
-                // Sla positie op voor staart
                 this.history.push({x: this.x, y: this.y});
                 if(this.history.length > 10) this.history.shift();
-
-                // Beweeg naar mond
                 this.x += (tx - this.x) * this.speed;
                 this.y += (ty - this.y) * this.speed;
-
                 if (Math.hypot(tx - this.x, ty - this.y) < 15) this.reset();
             }
             draw() {
-                // Teken de staart
                 ctx.beginPath();
                 ctx.moveTo(this.x, this.y);
-                for(let i = this.history.length-1; i>=0; i--) {
-                    ctx.lineTo(this.history[i].x, this.history[i].y);
-                }
+                for(let i = this.history.length-1; i>=0; i--) { ctx.lineTo(this.history[i].x, this.history[i].y); }
                 ctx.strokeStyle = this.color;
                 ctx.lineWidth = this.size;
                 ctx.lineCap = 'round';
                 ctx.stroke();
-                
-                // Kopje
                 ctx.fillStyle = '#fff';
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size/2, 0, Math.PI*2);
-                ctx.fill();
+                ctx.beginPath(); ctx.arc(this.x, this.y, this.size/2, 0, Math.PI*2); ctx.fill();
             }
         }
 
         for(let i=0; i<60; i++) particles.push(new EnergyWisp());
 
         function animate() {
-            // WIS HET SCHERM ELKE FRAME 100% SCHOON
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-
             if (isSucking) {
                 const mPos = document.getElementById('mouth').getBoundingClientRect();
                 const tx = mPos.left + mPos.width / 2;
                 const ty = mPos.top + mPos.height / 2;
-                
-                particles.forEach(p => {
-                    p.update(tx, ty);
-                    p.draw();
-                });
+                particles.forEach(p => { p.update(tx, ty); p.draw(); });
             }
             requestAnimationFrame(animate);
         }
