@@ -3,32 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Evil Remote v3</title>
+    <title>iPad Controller</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
-        body { font-family: sans-serif; background: #111; color: white; padding: 20px; text-align: center; }
-        button { width: 100%; padding: 15px; margin: 5px 0; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; }
-        .speak-btn { background: #f00; color: white; font-size: 20px; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-        input { width: 100%; padding: 15px; box-sizing: border-box; border-radius: 10px; margin-bottom: 10px; font-size: 18px; }
+        body { font-family: -apple-system, sans-serif; background: #f0f0f2; padding: 20px; color: #333; }
+        .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        button { width: 100%; padding: 15px; margin: 10px 0; border: none; border-radius: 10px; font-weight: bold; font-size: 16px; cursor: pointer; }
+        .btn-evil { background: #ff3b30; color: white; }
+        .btn-happy { background: #007aff; color: white; }
+        input { width: 100%; padding: 15px; border: 1px solid #ccc; border-radius: 10px; font-size: 16px; box-sizing: border-box; }
     </style>
 </head>
 <body>
 
-    <h1>Remote Control</h1>
-    
-    <h3>Emotie</h3>
-    <div class="grid">
-        <button onclick="setEmotion('normal')" style="background: #222; color: white;">Enge Tablet</button>
-        <button onclick="setEmotion('angry')" style="background: #600; color: white;">Heel Boos</button>
-        <button onclick="setEmotion('super-blij')" style="background: #008cff; color: white;">SUPER BLIJ!</button>
-        <button onclick="setEmotion('glitch')" style="background: #555; color: white;">Kortsluiting</button>
+    <div class="card">
+        <h3>Emotie</h3>
+        <button class="btn-evil" onclick="setEmo('angry')">MAAK EVIL (Rood)</button>
+        <button class="btn-happy" onclick="setEmo('super-blij')">MAAK BLIJ (Blauw)</button>
     </div>
 
-    <h3>Praten</h3>
-    <input type="text" id="txt" placeholder="Typ je tekst...">
-    <button class="speak-btn" onclick="stuur()">SPREEK NU</button>
+    <div class="card">
+        <h3>Praten</h3>
+        <input type="text" id="t" placeholder="Typ wat het karakter zegt...">
+        <button style="background: #34c759; color: white; margin-top: 10px;" onclick="say()">STUUR NAAR TV</button>
+    </div>
 
     <script>
         const firebaseConfig = {
@@ -43,15 +42,12 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        function setEmotion(emo) {
-            db.ref('tablet_emotion').set(emo);
-        }
-
-        function stuur() {
-            const txt = document.getElementById('txt').value;
-            if(txt) {
-                db.ref('tablet_speech').set({ text: txt, t: Date.now() });
-                document.getElementById('txt').value = "";
+        function setEmo(e) { db.ref('tablet_emotion').set(e); }
+        function say() {
+            const v = document.getElementById('t').value;
+            if(v) {
+                db.ref('tablet_speech').set({ text: v, time: Date.now() });
+                document.getElementById('t').value = "";
             }
         }
     </script>
