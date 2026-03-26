@@ -2,13 +2,13 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <title>iPad Pro - Dynamic Face</title>
+    <title>iPad Pro - Giant Face</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
         :root {
-            --bg: #000; --accent: #ff0000; --glow: rgba(255,0,0,0.5);
-            --face-scale: 1; --face-x: 0; --face-y: 0;
+            --bg: #000; --accent: #ff0000; --glow: rgba(255,0,0,0.6);
+            --mouth-x: 0px; --mouth-y: 0px; --mouth-scale: 1;
         }
 
         body, html { 
@@ -18,77 +18,74 @@
             font-family: sans-serif; transition: background 1s;
         }
 
-        /* De deeltjes achtergrond */
         #particle-canvas {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; z-index: 1;
+            position: absolute; inset: 0; pointer-events: none; z-index: 1;
         }
 
-        /* Het gezicht container */
+        /* Het gezicht (Groot in het midden) */
         #face-wrapper {
             position: relative; z-index: 10;
             display: flex; flex-direction: column; align-items: center;
-            transform: translate(var(--face-x), var(--face-y)) scale(var(--face-scale));
-            transition: all 1s cubic-bezier(0.4, 0, 0.2, 1);
-            will-change: transform;
+            transition: all 0.5s ease-out;
+            transform: scale(1.2); /* Gezicht 20% groter maken */
         }
 
-        /* Zweef animatie */
-        .float-anim { animation: float 4s infinite ease-in-out; }
-        @keyframes float {
-            0%, 100% { margin-top: 0; }
-            50% { margin-top: -20px; }
-        }
-
-        /* Ogen */
-        .eyes { display: flex; gap: 50px; margin-bottom: 50px; }
+        .eyes { display: flex; gap: 80px; margin-bottom: 40px; }
+        
         .eye {
-            width: 170px; height: 170px; background: #fff; border-radius: 50%;
-            position: relative; overflow: hidden; box-shadow: 0 0 50px var(--glow);
-            transition: 0.3s;
+            width: 250px; height: 250px; background: #fff; border-radius: 50%;
+            position: relative; overflow: hidden; box-shadow: 0 0 60px var(--glow);
+            transition: 0.4s;
         }
+
         .eyebrow {
-            position: absolute; width: 120%; height: 40px; background: var(--bg);
-            top: -20px; left: -10%; transition: 0.4s; z-index: 2;
+            position: absolute; width: 130%; height: 60px; background: var(--bg);
+            top: -20px; left: -15%; transition: 0.4s; z-index: 2;
         }
+
         .pupil {
-            position: absolute; width: 60px; height: 60px; background: #000;
-            border-radius: 50%; top: 55px; left: 55px; transition: 0.1s ease-out;
+            position: absolute; width: 90px; height: 90px; background: #000;
+            border-radius: 50%; top: 80px; left: 80px; transition: 0.15s ease-out;
         }
 
-        /* Mond */
         .mouth {
-            width: 280px; height: 20px; background: var(--accent);
-            border-radius: 100px; box-shadow: 0 0 30px var(--glow);
-            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            width: 450px; height: 30px; background: var(--accent);
+            border-radius: 100px; box-shadow: 0 0 40px var(--glow);
+            transform: translate(var(--mouth-x), var(--mouth-y)) scale(var(--mouth-scale));
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* MODI CSS */
-        .angry .eyebrow.l { transform: rotate(20deg) translateY(35px); }
-        .angry .eyebrow.r { transform: rotate(-20deg) translateY(35px); }
+        /* --- MODI --- */
+        .angry .eyebrow.l { transform: rotate(20deg) translateY(60px); }
+        .angry .eyebrow.r { transform: rotate(-20deg) translateY(60px); }
 
-        .slurpen { animation: shake 0.1s infinite; --face-x: 30vw; --face-y: 30vh; --face-scale: 0.7; }
+        /* SLURPEN: Mond rekt naar rechtsonder, pupillen kijken die kant op */
+        .slurpen { --bg: #0f0000; }
         .slurpen .mouth { 
-            height: 180px; width: 180px; border-radius: 50%; 
-            background: #000; border: 8px solid #0f0; box-shadow: 0 0 50px #0f0; 
+            --mouth-x: 200px; --mouth-y: 150px; --mouth-scale: 1.5;
+            height: 200px; width: 200px; border-radius: 50%;
+            background: #000; border: 12px solid #0f0; box-shadow: 0 0 70px #0f0;
+            animation: suck-pulse 0.3s infinite alternate;
         }
+        .slurpen .pupil { transform: translate(50px, 50px); } /* Kijkt naar rechtsonder */
 
-        .super-blij { --bg: #0066ff; --accent: #fff; --glow: rgba(255,255,255,0.7); }
-        .super-blij .eyebrow { transform: translateY(-30px); }
-        .super-blij .mouth { height: 140px; border-radius: 20px 20px 150px 150px; }
+        .super-blij { --bg: #0070f3; --accent: #fff; --glow: rgba(255,255,255,0.8); }
+        .super-blij .eyebrow { transform: translateY(-50px); }
+        .super-blij .mouth { height: 180px; border-radius: 20px 20px 200px 200px; width: 500px; }
 
-        @keyframes shake { 0% { transform: translate(calc(var(--face-x) + 2px), var(--face-y)); } 100% { transform: translate(var(--face-x), calc(var(--face-y) + 2px)); } }
+        @keyframes suck-pulse { from { transform: translate(200px, 150px) scale(1.4); } to { transform: translate(200px, 150px) scale(1.6); } }
 
-        #overlay { position: fixed; inset: 0; background: #000; color: red; display: flex; justify-content: center; align-items: center; z-index: 1000; cursor: pointer; font-size: 24px; letter-spacing: 2px; }
+        #overlay { position: fixed; inset: 0; background: #000; color: #f00; display: flex; justify-content: center; align-items: center; z-index: 1000; cursor: pointer; font-size: 30px; font-weight: bold; font-family: monospace; }
+        .blink .eye { transform: scaleY(0.05); }
     </style>
 </head>
 <body class="angry">
 
-    <div id="overlay" onclick="startApp()">[ Systeem Online Brengen ]</div>
+    <div id="overlay" onclick="startApp()">[ SYSTEEM BOOTEN... ]</div>
     
     <canvas id="particle-canvas"></canvas>
 
-    <div id="face-wrapper" class="float-anim">
+    <div id="face-wrapper">
         <div class="eyes">
             <div class="eye">
                 <div class="eyebrow l"></div>
@@ -115,7 +112,6 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // PARTICLE SYSTEM
         const canvas = document.getElementById('particle-canvas');
         const ctx = canvas.getContext('2d');
         let particles = [];
@@ -127,34 +123,45 @@
         class Particle {
             constructor() { this.reset(); }
             reset() {
-                this.x = Math.random() * canvas.width;
-                this.y = Math.random() * canvas.height;
-                this.size = Math.random() * 4 + 1;
-                this.speed = Math.random() * 5 + 2;
-                this.color = Math.random() > 0.5 ? '#0f0' : '#fff';
+                // In slurp-mode starten ze in de rechteronderhoek
+                if (isSucking) {
+                    this.x = canvas.width + Math.random() * 100;
+                    this.y = canvas.height + Math.random() * 100;
+                } else {
+                    this.x = Math.random() * canvas.width;
+                    this.y = Math.random() * canvas.height;
+                }
+                this.size = Math.random() * 6 + 2;
+                this.speed = Math.random() * 8 + 4;
+                this.color = Math.random() > 0.3 ? '#0f0' : '#fff';
             }
             update() {
                 if (isSucking) {
-                    const mouth = document.getElementById('mouth').getBoundingClientRect();
-                    const targetX = mouth.left + mouth.width / 2;
-                    const targetY = mouth.top + mouth.height / 2;
-                    this.x += (targetX - this.x) * 0.05;
-                    this.y += (targetY - this.y) * 0.05;
-                    if (Math.abs(this.x - targetX) < 10) this.reset();
+                    const mouthPos = document.getElementById('mouth').getBoundingClientRect();
+                    const targetX = mouthPos.left + mouthPos.width / 2;
+                    const targetY = mouthPos.top + mouthPos.height / 2;
+                    
+                    // Trek naar mond
+                    this.x += (targetX - this.x) * 0.07;
+                    this.y += (targetY - this.y) * 0.07;
+                    
+                    if (Math.abs(this.x - targetX) < 15 && Math.abs(this.y - targetY) < 15) this.reset();
                 } else {
                     this.y -= this.speed * 0.2;
-                    if (this.y < 0) this.reset();
+                    if (this.y < -10) this.reset();
                 }
             }
             draw() {
                 ctx.fillStyle = this.color;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = this.color;
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
                 ctx.fill();
             }
         }
 
-        for(let i=0; i<100; i++) particles.push(new Particle());
+        for(let i=0; i<150; i++) particles.push(new Particle());
 
         function animate() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -163,7 +170,6 @@
         }
         animate();
 
-        // FIREBASE & LOGICA
         function startApp() {
             document.getElementById('overlay').style.display = 'none';
             db.ref('tablet_emotion').on('value', snap => {
@@ -182,36 +188,52 @@
             const utter = new SpeechSynthesisUtterance(text);
             utter.lang = 'nl-NL';
             const isHappy = document.body.classList.contains('super-blij');
-            utter.pitch = isHappy ? 1.5 : 0.1;
-            utter.rate = isHappy ? 1.1 : 0.7;
+            utter.pitch = isHappy ? 1.4 : 0.1;
+            utter.rate = isHappy ? 1.0 : 0.75;
 
             utter.onstart = () => {
                 this.talkInterval = setInterval(() => {
-                    const h = isHappy ? (Math.random()*40 + 130) : (Math.random()*80 + 20);
-                    document.getElementById('mouth').style.height = h + "px";
-                    document.getElementById('mouth').style.width = (280 + (Math.random()*20 - 10)) + "px";
-                }, 70);
+                    const emo = document.body.className;
+                    const mouth = document.getElementById('mouth');
+                    if (emo === 'super-blij') {
+                        mouth.style.height = (Math.random() * 60 + 150) + "px";
+                    } else if (emo === 'slurpen') {
+                        // Geen lip-sync tijdens slurpen, mond blijft open gat
+                    } else {
+                        mouth.style.height = (Math.random() * 100 + 30) + "px";
+                    }
+                }, 80);
             };
             utter.onend = () => {
                 clearInterval(this.talkInterval);
-                const emo = document.body.className;
-                const m = document.getElementById('mouth');
-                if(emo === 'super-blij') m.style.height = "140px";
-                else if(emo === 'slurpen') m.style.height = "180px";
-                else m.style.height = "20px";
+                resetMouth();
             };
             synth.speak(utter);
         }
 
-        // Natuurlijke oogbewegingen
+        function resetMouth() {
+            const emo = document.body.className;
+            const m = document.getElementById('mouth');
+            if(emo === 'super-blij') m.style.height = "180px";
+            else if(emo === 'slurpen') m.style.height = "200px";
+            else m.style.height = "30px";
+        }
+
         setInterval(() => {
-            const x = (Math.random()*30 - 15) + 55;
-            const y = (Math.random()*30 - 15) + 55;
-            document.getElementById('p1').style.left = x + "px";
-            document.getElementById('p1').style.top = y + "px";
-            document.getElementById('p2').style.left = x + "px";
-            document.getElementById('p2').style.top = y + "px";
+            if (!isSucking) {
+                const x = (Math.random()*40 - 20) + 80;
+                const y = (Math.random()*40 - 20) + 80;
+                document.getElementById('p1').style.left = x + "px";
+                document.getElementById('p1').style.top = y + "px";
+                document.getElementById('p2').style.left = x + "px";
+                document.getElementById('p2').style.top = y + "px";
+            }
         }, 2000);
+
+        setInterval(() => {
+            document.body.classList.add('blink');
+            setTimeout(() => document.body.classList.remove('blink'), 150);
+        }, 4500);
     </script>
 </body>
 </html>
