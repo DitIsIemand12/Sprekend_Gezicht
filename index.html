@@ -6,34 +6,25 @@
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
-        :root { --bg-color: #050505; --face-color: #ff0000; --glow-color: rgba(255, 0, 0, 0.5); --eye-size: 180px; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg-color); overflow: hidden; display: flex; justify-content: center; align-items: center; transition: all 0.8s ease-in-out; font-family: sans-serif; }
-        .container { display: flex; flex-direction: column; align-items: center; animation: float 4s infinite ease-in-out; }
-        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
-        .eyes-row { display: flex; gap: 60px; margin-bottom: 60px; }
-        .eye { width: var(--eye-size); height: var(--eye-size); background: white; border-radius: 50%; position: relative; overflow: hidden; box-shadow: 0 0 40px var(--glow-color); transition: all 0.4s ease; }
-        .pupil { width: 40%; height: 40%; background: #000; border-radius: 50%; position: absolute; top: 30%; left: 30%; transition: all 0.2s ease; }
-        .mouth { width: 280px; height: 20px; background: var(--face-color); border-radius: 40px; box-shadow: 0 0 30px var(--glow-color); transition: all 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55); }
-        .angry .eye { transform: scaleY(0.8); border: 5px solid red; }
-        .angry .eye::after { content: ''; position: absolute; top: -30%; left: -10%; width: 120%; height: 60%; background: var(--bg-color); transform: rotate(15deg); }
-        .angry .eye.right::after { transform: rotate(-15deg); }
+        :root { --bg-color: #050505; --face-color: #ff0000; --glow-color: rgba(255, 0, 0, 0.5); }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg-color); overflow: hidden; display: flex; justify-content: center; align-items: center; transition: all 0.8s ease; font-family: sans-serif; }
+        .eye { width: 180px; height: 180px; background: white; border-radius: 50%; position: relative; display: inline-block; margin: 30px; box-shadow: 0 0 40px var(--glow-color); }
+        .pupil { width: 70px; height: 70px; background: black; border-radius: 50%; position: absolute; top: 55px; left: 55px; transition: 0.1s; }
+        .mouth { width: 300px; height: 20px; background: var(--face-color); border-radius: 40px; margin-top: 50px; box-shadow: 0 0 30px var(--glow-color); transition: 0.3s; }
+        #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: black; color: red; display: flex; justify-content: center; align-items: center; z-index: 999; cursor: pointer; font-size: 24px; }
+        
+        /* Modus voor blij */
         .super-blij { --bg-color: #007AFF; --face-color: #fff; --glow-color: rgba(255, 255, 255, 0.8); }
-        .super-blij .eye { width: 200px; height: 200px; border: none; }
-        .super-blij .pupil { background: #0044ff; width: 50%; height: 50%; }
-        .super-blij .mouth { height: 140px; border-radius: 20px 20px 140px 140px; }
-        .blink .eye { transform: scaleY(0.05) !important; }
-        #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: black; color: red; display: flex; justify-content: center; align-items: center; z-index: 999; cursor: pointer; font-size: 20px; }
+        .super-blij .mouth { height: 120px; border-radius: 20px 20px 150px 150px; }
     </style>
 </head>
-<body id="body" class="angry">
+<body class="angry">
 
-    <div id="overlay" onclick="startApp()">[ SYSTEEM STARTEN... ]</div>
+    <div id="overlay" onclick="startApp()">[ KLIK OM SYSTEEM TE STARTEN ]</div>
 
-    <div class="container">
-        <div class="eyes-row">
-            <div class="eye left"><div class="pupil" id="p-l"></div></div>
-            <div class="eye right"><div class="pupil" id="p-r"></div></div>
-        </div>
+    <div style="text-align: center;">
+        <div class="eye"><div class="pupil" id="p1"></div></div>
+        <div class="eye"><div class="pupil" id="p2"></div></div>
         <div class="mouth" id="mouth"></div>
     </div>
 
@@ -52,42 +43,48 @@
 
         function startApp() {
             document.getElementById('overlay').style.display = 'none';
-            db.ref('tablet_speech').on('value', (s) => { if(s.val()) speak(s.val().text); });
-            db.ref('tablet_emotion').on('value', (s) => { 
-                const emo = s.val(); if(!emo) return;
-                document.body.className = emo;
-                document.getElementById('mouth').style.height = (emo === 'super-blij') ? "140px" : "20px";
+            
+            // Luister naar emotie
+            db.ref('tablet_emotion').on('value', (snapshot) => {
+                const emo = snapshot.val();
+                if(emo) document.body.className = emo;
+            });
+
+            // Luister naar tekst
+            db.ref('tablet_speech').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if(data) speak(data.text);
             });
         }
 
-        function speak(t) {
+        function speak(text) {
             const synth = window.speechSynthesis;
-            const utter = new SpeechSynthesisUtterance(t);
+            const utter = new SpeechSynthesisUtterance(text);
             utter.lang = 'nl-NL';
-            const isHappy = document.body.classList.contains('super-blij');
-            utter.pitch = isHappy ? 1.4 : 0.2;
+            
             utter.onstart = () => {
                 this.talkInterval = setInterval(() => {
-                    document.getElementById('mouth').style.height = isHappy ? (Math.random()*40+120)+"px" : (Math.random()*80+20)+"px";
+                    const h = Math.random() * 60 + 20;
+                    document.getElementById('mouth').style.height = h + "px";
                 }, 100);
             };
             utter.onend = () => {
                 clearInterval(this.talkInterval);
-                document.getElementById('mouth').style.height = isHappy ? "140px" : "20px";
+                const isHappy = document.body.classList.contains('super-blij');
+                document.getElementById('mouth').style.height = isHappy ? "120px" : "20px";
             };
             synth.speak(utter);
         }
 
+        // Ogen bewegen
         setInterval(() => {
-            const x = Math.random()*40+10, y = Math.random()*40+10;
-            document.getElementById('p-l').style.left = x+"%"; document.getElementById('p-l').style.top = y+"%";
-            document.getElementById('p-r').style.left = x+"%"; document.getElementById('p-r').style.top = y+"%";
-        }, 3000);
-
-        setInterval(() => {
-            document.body.classList.add('blink');
-            setTimeout(() => document.body.classList.remove('blink'), 150);
-        }, 5000);
+            const x = Math.random() * 40 + 20;
+            const y = Math.random() * 40 + 20;
+            document.getElementById('p1').style.left = x + "px";
+            document.getElementById('p1').style.top = y + "px";
+            document.getElementById('p2').style.left = x + "px";
+            document.getElementById('p2').style.top = y + "px";
+        }, 2000);
     </script>
 </body>
 </html>
