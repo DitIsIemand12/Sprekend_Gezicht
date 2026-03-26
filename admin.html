@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tablet Admin</title>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #1a1a1a; color: white; text-align: center; }
+        input { width: 90%; padding: 15px; font-size: 18px; border-radius: 10px; border: none; margin-bottom: 20px; display: block; margin-left: auto; margin-right: auto; }
+        button { width: 90%; padding: 15px; background: #f00; color: white; border: none; border-radius: 10px; font-weight: bold; font-size: 18px; cursor: pointer; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 30px; width: 90%; margin-left: auto; margin-right: auto; }
+        .preset { background: #333; font-size: 14px; padding: 10px; }
+    </style>
+</head>
+<body>
+
+    <h1>Evil Remote</h1>
+    <input type="text" id="customText" placeholder="Typ je eigen tekst...">
+    <button onclick="stuurBericht()">SPREEK NU</button>
+
+    <div class="grid">
+        <button class="preset" onclick="stuurBericht('Hahaha! Die Buzz Lightyear heeft geen schijn van kans!')">Lach Buzz uit</button>
+        <button class="preset" onclick="stuurBericht('STILSTAAN! Ik zie jullie wel bewegen!')">BEVRIEZEN</button>
+        <button class="preset" onclick="stuurBericht('Ik slurp al jullie energie op. Meer! Meer energie!')">Slurpen</button>
+        <button class="preset" onclick="stuurBericht('Nee! De kabels! Wat doen jullie nu?')">Kabels</button>
+        <button class="preset" onclick="stuurBericht('Systeemfout. Batterij kritiek. Ik... ga... uit...')">Uitschakelen</button>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAGvUwRjfQQ0QSh2S4n6mGf8k7sZlBggEs",
+            authDomain: "tradingpost-57b20.firebaseapp.com",
+            databaseURL: "https://tradingpost-57b20-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "tradingpost-57b20",
+            storageBucket: "tradingpost-57b20.firebasestorage.app",
+            messagingSenderId: "358205969306",
+            appId: "1:358205969306:web:3262822209994843fca023"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        function stuurBericht(tekst) {
+            const veld = document.getElementById('customText');
+            const output = tekst || veld.value;
+            
+            if (output) {
+                // We sturen ook een timestamp mee zodat de TV weet dat het een nieuw bericht is
+                db.ref('tablet_speech').set({
+                    text: output,
+                    timestamp: Date.now()
+                });
+                veld.value = "";
+            }
+        }
+    </script>
+</body>
+</html>
