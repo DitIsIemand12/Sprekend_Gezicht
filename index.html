@@ -67,7 +67,7 @@
         }
         .angry .eye.right::after { transform: rotate(-15deg); }
 
-        /* SUPER BLIJ (De verlossing) */
+        /* SUPER BLIJ */
         .super-blij { 
             --bg-color: #007AFF; 
             --face-color: #fff; 
@@ -101,15 +101,17 @@
     </div>
 
     <script>
+        // De nieuwe configuratie voor scouting-3886b
         const firebaseConfig = {
-            apiKey: "AIzaSyAGvUwRjfQQ0QSh2S4n6mGf8k7sZlBggEs",
-            authDomain: "tradingpost-57b20.firebaseapp.com",
-            databaseURL: "https://tradingpost-57b20-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "tradingpost-57b20",
-            storageBucket: "tradingpost-57b20.firebasestorage.app",
-            messagingSenderId: "358205969306",
-            appId: "1:358205969306:web:3262822209994843fca023"
+            apiKey: "AIzaSyDk5QfCGtERCKw6m3fg5FlzEDEVoBU4SU0",
+            authDomain: "scouting-3886b.firebaseapp.com",
+            databaseURL: "https://scouting-3886b-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "scouting-3886b",
+            storageBucket: "scouting-3886b.firebasestorage.app",
+            messagingSenderId: "512534815557",
+            appId: "1:512534815557:web:6d852b4fb27804813e942c"
         };
+        
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
@@ -125,6 +127,8 @@
             // Luister naar emoties
             db.ref('tablet_emotion').on('value', (snapshot) => {
                 const emo = snapshot.val();
+                if(!emo) return;
+                
                 document.body.className = emo;
                 if(emo === 'super-blij') {
                     document.getElementById('mouth').style.height = "140px";
@@ -158,7 +162,7 @@
             synth.speak(utter);
         }
 
-        // Pupillen laten rondkijken voor realisme
+        // Pupillen laten rondkijken
         setInterval(() => {
             const x = Math.random() * 40 + 10;
             const y = Math.random() * 40 + 10;
