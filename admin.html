@@ -3,30 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>iPad Controller</title>
+    <title>iPad Pro Controller</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
-        body { font-family: -apple-system, sans-serif; background: #f0f0f2; padding: 20px; }
+        body { font-family: sans-serif; background: #f0f0f2; padding: 20px; text-align: center; }
         .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        button { width: 100%; padding: 15px; margin: 10px 0; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; color: white; font-size: 16px; }
-        .btn-evil { background: #ff3b30; }
+        button { width: 100%; padding: 18px; margin: 8px 0; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; color: white; font-size: 16px; transition: 0.2s; }
+        button:active { transform: scale(0.95); }
+        .btn-evil { background: #000; border: 2px solid red; color: red; }
+        .btn-slurp { background: linear-gradient(45deg, #800, #f00); box-shadow: 0 5px 15px rgba(255,0,0,0.4); }
         .btn-happy { background: #007aff; }
-        input { width: 100%; padding: 15px; border: 1px solid #ccc; border-radius: 10px; font-size: 16px; box-sizing: border-box; }
+        .btn-normal { background: #555; }
+        input { width: 100%; padding: 15px; border: 1px solid #ccc; border-radius: 10px; font-size: 18px; box-sizing: border-box; }
     </style>
 </head>
 <body>
 
     <div class="card">
-        <h3>Emotie</h3>
-        <button class="btn-evil" onclick="setEmo('angry')">MAAK EVIL (Rood)</button>
-        <button class="btn-happy" onclick="setEmo('super-blij')">MAAK BLIJ (Blauw)</button>
+        <h3>Emotie & Positie</h3>
+        <button class="btn-normal" onclick="setEmo('normal')">Neutraal (Midden)</button>
+        <button class="btn-evil" onclick="setEmo('angry')">MAAK BOOS</button>
+        <button class="btn-slurp" onclick="setEmo('slurpen')">START ENERGIE SLURPEN (Hoek)</button>
+        <button class="btn-happy" onclick="setEmo('super-blij')">MAAK BLIJ (Gered!)</button>
     </div>
 
     <div class="card">
         <h3>Praten</h3>
         <input type="text" id="t" placeholder="Typ wat het karakter zegt...">
-        <button style="background: #34c759; color: white; margin-top: 10px;" onclick="say()">STUUR NAAR TV</button>
+        <button style="background: #34c759; margin-top: 10px;" onclick="say()">SPREEK NU</button>
     </div>
 
     <script>
@@ -42,10 +47,7 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        function setEmo(e) { 
-            db.ref('tablet_emotion').set(e); 
-        }
-
+        function setEmo(e) { db.ref('tablet_emotion').set(e); }
         function say() {
             const v = document.getElementById('t').value;
             if(v) {
