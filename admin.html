@@ -3,30 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tablet Admin</title>
+    <title>Evil Remote v2</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
-        body { font-family: sans-serif; padding: 20px; background: #1a1a1a; color: white; text-align: center; }
-        input { width: 90%; padding: 15px; font-size: 18px; border-radius: 10px; border: none; margin-bottom: 20px; display: block; margin-left: auto; margin-right: auto; }
-        button { width: 90%; padding: 15px; background: #f00; color: white; border: none; border-radius: 10px; font-weight: bold; font-size: 18px; cursor: pointer; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 30px; width: 90%; margin-left: auto; margin-right: auto; }
-        .preset { background: #333; font-size: 14px; padding: 10px; }
+        body { font-family: sans-serif; background: #111; color: white; padding: 20px; text-align: center; }
+        button { width: 100%; padding: 15px; margin: 5px 0; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; }
+        .speak-btn { background: #f00; color: white; font-size: 20px; }
+        .emo-btn { background: #444; color: white; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        input { width: 100%; padding: 15px; box-sizing: border-box; border-radius: 10px; margin-bottom: 10px; font-size: 18px; }
+        h3 { border-bottom: 1px solid #333; padding-bottom: 5px; margin-top: 25px; }
     </style>
 </head>
 <body>
 
-    <h1>Evil Remote</h1>
-    <input type="text" id="customText" placeholder="Typ je eigen tekst...">
-    <button onclick="stuurBericht()">SPREEK NU</button>
-
+    <h1>Remote Control</h1>
+    
+    <h3>1. Emotie Switchen</h3>
     <div class="grid">
-        <button class="preset" onclick="stuurBericht('Hahaha! Die Buzz Lightyear heeft geen schijn van kans!')">Lach Buzz uit</button>
-        <button class="preset" onclick="stuurBericht('STILSTAAN! Ik zie jullie wel bewegen!')">BEVRIEZEN</button>
-        <button class="preset" onclick="stuurBericht('Ik slurp al jullie energie op. Meer! Meer energie!')">Slurpen</button>
-        <button class="preset" onclick="stuurBericht('Nee! De kabels! Wat doen jullie nu?')">Kabels</button>
-        <button class="preset" onclick="stuurBericht('Systeemfout. Batterij kritiek. Ik... ga... uit...')">Uitschakelen</button>
+        <button class="emo-btn" onclick="setEmotion('normal')" style="background: #222;">Neutraal</button>
+        <button class="emo-btn" onclick="setEmotion('angry')" style="background: #600;">Boos</button>
+        <button class="emo-btn" onclick="setEmotion('happy')" style="background: #060;">Blij</button>
+        <button class="emo-btn" onclick="setEmotion('glitch')" style="background: #550;">Gestoord</button>
     </div>
+
+    <h3>2. Praten</h3>
+    <input type="text" id="txt" placeholder="Typ je snode plannen...">
+    <button class="speak-btn" onclick="stuur()">SPREEK NU</button>
 
     <script>
         const firebaseConfig = {
@@ -41,17 +45,15 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        function stuurBericht(tekst) {
-            const veld = document.getElementById('customText');
-            const output = tekst || veld.value;
-            
-            if (output) {
-                // We sturen ook een timestamp mee zodat de TV weet dat het een nieuw bericht is
-                db.ref('tablet_speech').set({
-                    text: output,
-                    timestamp: Date.now()
-                });
-                veld.value = "";
+        function setEmotion(emo) {
+            db.ref('tablet_emotion').set(emo);
+        }
+
+        function stuur() {
+            const txt = document.getElementById('txt').value;
+            if(txt) {
+                db.ref('tablet_speech').set({ text: txt, t: Date.now() });
+                document.getElementById('txt').value = "";
             }
         }
     </script>
