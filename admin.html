@@ -3,33 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Evil Remote v2</title>
+    <title>Evil Remote v3</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
         body { font-family: sans-serif; background: #111; color: white; padding: 20px; text-align: center; }
         button { width: 100%; padding: 15px; margin: 5px 0; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; }
         .speak-btn { background: #f00; color: white; font-size: 20px; }
-        .emo-btn { background: #444; color: white; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
         input { width: 100%; padding: 15px; box-sizing: border-box; border-radius: 10px; margin-bottom: 10px; font-size: 18px; }
-        h3 { border-bottom: 1px solid #333; padding-bottom: 5px; margin-top: 25px; }
     </style>
 </head>
 <body>
 
     <h1>Remote Control</h1>
     
-    <h3>1. Emotie Switchen</h3>
+    <h3>Emotie</h3>
     <div class="grid">
-        <button class="emo-btn" onclick="setEmotion('normal')" style="background: #222;">Neutraal</button>
-        <button class="emo-btn" onclick="setEmotion('angry')" style="background: #600;">Boos</button>
-        <button class="emo-btn" onclick="setEmotion('happy')" style="background: #060;">Blij</button>
-        <button class="emo-btn" onclick="setEmotion('glitch')" style="background: #550;">Gestoord</button>
+        <button onclick="setEmotion('normal')" style="background: #222; color: white;">Enge Tablet</button>
+        <button onclick="setEmotion('angry')" style="background: #600; color: white;">Heel Boos</button>
+        <button onclick="setEmotion('super-blij')" style="background: #008cff; color: white;">SUPER BLIJ!</button>
+        <button onclick="setEmotion('glitch')" style="background: #555; color: white;">Kortsluiting</button>
     </div>
 
-    <h3>2. Praten</h3>
-    <input type="text" id="txt" placeholder="Typ je snode plannen...">
+    <h3>Praten</h3>
+    <input type="text" id="txt" placeholder="Typ je tekst...">
     <button class="speak-btn" onclick="stuur()">SPREEK NU</button>
 
     <script>
