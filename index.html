@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <title>Evil Tablet - TV SCHERM</title>
+    <!-- Firebase Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; }
+        .screen { display: flex; flex-direction: column; align-items: center; }
+        .eyes { display: flex; margin-bottom: 60px; }
+        .eye { width: 180px; height: 100px; background: #f00; border-radius: 50%; box-shadow: 0 0 60px #f00; position: relative; margin: 0 40px; transition: 0.1s; }
+        .eye::before { content: ''; position: absolute; top: -35px; width: 220px; height: 90px; background: #000; transform: rotate(18deg); left: -20px; }
+        .right::before { transform: rotate(-18deg); left: -20px; }
+        .mouth { width: 300px; height: 15px; background: #f00; border-radius: 50%; box-shadow: 0 0 40px #f00; transition: 0.1s; }
+        #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); color: white; display: flex; justify-content: center; align-items: center; cursor: pointer; z-index: 100; font-family: sans-serif; font-size: 24px; text-align: center; padding: 20px; }
+        .blink .eye { height: 5px; }
+    </style>
+</head>
+<body>
+
+    <div id="overlay" onclick="startApp()">KLIK HIER OM HET GEZICHT TE ACTIVEREN</div>
+
+    <div class="screen">
+        <div class="eyes">
+            <div class="eye left"></div>
+            <div class="eye right"></div>
+        </div>
+        <div class="mouth" id="mouth"></div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAGvUwRjfQQ0QSh2S4n6mGf8k7sZlBggEs",
+            authDomain: "tradingpost-57b20.firebaseapp.com",
+            databaseURL: "https://tradingpost-57b20-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "tradingpost-57b20",
+            storageBucket: "tradingpost-57b20.firebasestorage.app",
+            messagingSenderId: "358205969306",
+            appId: "1:358205969306:web:3262822209994843fca023"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        function startApp() {
+            document.getElementById('overlay').style.display = 'none';
+            // Luister naar veranderingen in de database
+            db.ref('tablet_speech').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data && data.text) {
+                    praat(data.text);
+                }
+            });
+        }
+
+        function praat(tekst) {
+            const synth = window.speechSynthesis;
+            const utterance = new SpeechSynthesisUtterance(tekst);
+            utterance.lang = 'nl-NL';
+            utterance.pitch = 0.3; // Enge lage stem
+            utterance.rate = 0.8;  // Iets trager
+
+            let voices = synth.getVoices();
+            let nlVoice = voices.find(v => v.lang.includes('nl-NL'));
+            if (nlVoice) utterance.voice = nlVoice;
+
+            let mouthInterval = setInterval(() => {
+                if (synth.speaking) {
+                    document.getElementById('mouth').style.height = (Math.random() * 140 + 20) + "px";
+                } else {
+                    document.getElementById('mouth').style.height = "15px";
+                    clearInterval(mouthInterval);
+                }
+            }, 100);
+
+            synth.speak(utterance);
+        }
+
+        // Automatisch knipperen
+        setInterval(() => {
+            document.body.classList.add('blink');
+            setTimeout(() => document.body.classList.remove('blink'), 150);
+        }, 4000);
+    </script>
+</body>
+</html>
