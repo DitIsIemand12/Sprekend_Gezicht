@@ -6,93 +6,30 @@
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
-        :root {
-            --bg-color: #050505;
-            --face-color: #ff0000;
-            --glow-color: rgba(255, 0, 0, 0.5);
-            --eye-size: 180px;
-        }
-
-        body, html { 
-            margin: 0; padding: 0; width: 100%; height: 100%; 
-            background: var(--bg-color); 
-            overflow: hidden; display: flex; justify-content: center; align-items: center; 
-            transition: all 0.8s ease-in-out;
-            font-family: 'Helvetica Neue', sans-serif;
-        }
-
-        .container { 
-            display: flex; flex-direction: column; align-items: center; 
-            animation: float 4s infinite ease-in-out;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-20px); }
-        }
-
-        /* OGEN */
+        :root { --bg-color: #050505; --face-color: #ff0000; --glow-color: rgba(255, 0, 0, 0.5); --eye-size: 180px; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg-color); overflow: hidden; display: flex; justify-content: center; align-items: center; transition: all 0.8s ease-in-out; font-family: sans-serif; }
+        .container { display: flex; flex-direction: column; align-items: center; animation: float 4s infinite ease-in-out; }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
         .eyes-row { display: flex; gap: 60px; margin-bottom: 60px; }
-        .eye { 
-            width: var(--eye-size); height: var(--eye-size); 
-            background: white; border-radius: 50%; 
-            position: relative; overflow: hidden;
-            box-shadow: 0 0 40px var(--glow-color);
-            transition: all 0.4s ease;
-        }
-        
-        .pupil {
-            width: 40%; height: 40%; background: #000; 
-            border-radius: 50%; position: absolute; 
-            top: 30%; left: 30%;
-            transition: all 0.2s ease;
-        }
-
-        /* MOND */
-        .mouth { 
-            width: 280px; height: 20px; 
-            background: var(--face-color); border-radius: 40px; 
-            box-shadow: 0 0 30px var(--glow-color);
-            transition: all 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
-        }
-
-        /* --- MODI --- */
-
-        /* BOOS / EVIL (Standaard) */
+        .eye { width: var(--eye-size); height: var(--eye-size); background: white; border-radius: 50%; position: relative; overflow: hidden; box-shadow: 0 0 40px var(--glow-color); transition: all 0.4s ease; }
+        .pupil { width: 40%; height: 40%; background: #000; border-radius: 50%; position: absolute; top: 30%; left: 30%; transition: all 0.2s ease; }
+        .mouth { width: 280px; height: 20px; background: var(--face-color); border-radius: 40px; box-shadow: 0 0 30px var(--glow-color); transition: all 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55); }
         .angry .eye { transform: scaleY(0.8); border: 5px solid red; }
-        .angry .eye::after { 
-            content: ''; position: absolute; top: -30%; left: -10%; 
-            width: 120%; height: 60%; background: var(--bg-color); 
-            transform: rotate(15deg); 
-        }
+        .angry .eye::after { content: ''; position: absolute; top: -30%; left: -10%; width: 120%; height: 60%; background: var(--bg-color); transform: rotate(15deg); }
         .angry .eye.right::after { transform: rotate(-15deg); }
-
-        /* SUPER BLIJ */
-        .super-blij { 
-            --bg-color: #007AFF; 
-            --face-color: #fff; 
-            --glow-color: rgba(255, 255, 255, 0.8); 
-        }
+        .super-blij { --bg-color: #007AFF; --face-color: #fff; --glow-color: rgba(255, 255, 255, 0.8); }
         .super-blij .eye { width: 200px; height: 200px; border: none; }
         .super-blij .pupil { background: #0044ff; width: 50%; height: 50%; }
         .super-blij .mouth { height: 140px; border-radius: 20px 20px 140px 140px; }
-
-        /* Knipperen */
         .blink .eye { transform: scaleY(0.05) !important; }
-
-        #overlay { 
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: black; color: red; display: flex; 
-            justify-content: center; align-items: center; z-index: 999;
-            cursor: pointer; font-size: 20px; letter-spacing: 2px;
-        }
+        #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: black; color: red; display: flex; justify-content: center; align-items: center; z-index: 999; cursor: pointer; font-size: 20px; }
     </style>
 </head>
 <body id="body" class="angry">
 
     <div id="overlay" onclick="startApp()">[ SYSTEEM STARTEN... ]</div>
 
-    <div class="container" id="face-container">
+    <div class="container">
         <div class="eyes-row">
             <div class="eye left"><div class="pupil" id="p-l"></div></div>
             <div class="eye right"><div class="pupil" id="p-r"></div></div>
@@ -101,78 +38,52 @@
     </div>
 
     <script>
-        // De nieuwe configuratie voor scouting-3886b
         const firebaseConfig = {
             apiKey: "AIzaSyDk5QfCGtERCKw6m3fg5FlzEDEVoBU4SU0",
             authDomain: "scouting-3886b.firebaseapp.com",
-            databaseURL: "https://scouting-3886b-default-rtdb.europe-west1.firebasedatabase.app",
+            databaseURL: "https://scouting-3886b-default-rtdb.firebaseio.com",
             projectId: "scouting-3886b",
             storageBucket: "scouting-3886b.firebasestorage.app",
             messagingSenderId: "512534815557",
             appId: "1:512534815557:web:6d852b4fb27804813e942c"
         };
-        
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
         function startApp() {
             document.getElementById('overlay').style.display = 'none';
-            
-            // Luister naar spraak
-            db.ref('tablet_speech').on('value', (snapshot) => {
-                const data = snapshot.val();
-                if (data && data.text) speak(data.text);
-            });
-
-            // Luister naar emoties
-            db.ref('tablet_emotion').on('value', (snapshot) => {
-                const emo = snapshot.val();
-                if(!emo) return;
-                
+            db.ref('tablet_speech').on('value', (s) => { if(s.val()) speak(s.val().text); });
+            db.ref('tablet_emotion').on('value', (s) => { 
+                const emo = s.val(); if(!emo) return;
                 document.body.className = emo;
-                if(emo === 'super-blij') {
-                    document.getElementById('mouth').style.height = "140px";
-                } else {
-                    document.getElementById('mouth').style.height = "20px";
-                }
+                document.getElementById('mouth').style.height = (emo === 'super-blij') ? "140px" : "20px";
             });
         }
 
-        function speak(text) {
+        function speak(t) {
             const synth = window.speechSynthesis;
-            const utter = new SpeechSynthesisUtterance(text);
+            const utter = new SpeechSynthesisUtterance(t);
             utter.lang = 'nl-NL';
-            
             const isHappy = document.body.classList.contains('super-blij');
             utter.pitch = isHappy ? 1.4 : 0.2;
-            utter.rate = isHappy ? 1.1 : 0.7;
-
             utter.onstart = () => {
                 this.talkInterval = setInterval(() => {
-                    const h = isHappy ? (Math.random() * 40 + 120) : (Math.random() * 80 + 20);
-                    document.getElementById('mouth').style.height = h + "px";
+                    document.getElementById('mouth').style.height = isHappy ? (Math.random()*40+120)+"px" : (Math.random()*80+20)+"px";
                 }, 100);
             };
-
             utter.onend = () => {
                 clearInterval(this.talkInterval);
                 document.getElementById('mouth').style.height = isHappy ? "140px" : "20px";
             };
-
             synth.speak(utter);
         }
 
-        // Pupillen laten rondkijken
         setInterval(() => {
-            const x = Math.random() * 40 + 10;
-            const y = Math.random() * 40 + 10;
-            document.getElementById('p-l').style.left = x + "%";
-            document.getElementById('p-l').style.top = y + "%";
-            document.getElementById('p-r').style.left = x + "%";
-            document.getElementById('p-r').style.top = y + "%";
+            const x = Math.random()*40+10, y = Math.random()*40+10;
+            document.getElementById('p-l').style.left = x+"%"; document.getElementById('p-l').style.top = y+"%";
+            document.getElementById('p-r').style.left = x+"%"; document.getElementById('p-r').style.top = y+"%";
         }, 3000);
 
-        // Knipperen
         setInterval(() => {
             document.body.classList.add('blink');
             setTimeout(() => document.body.classList.remove('blink'), 150);
