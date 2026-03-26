@@ -2,7 +2,7 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <title>iPad Pro - Giant Face BLUE FIX</title>
+    <title>iPad Pro - Energy Eater Edition</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
@@ -11,12 +11,17 @@
             --m-x: 0px; --m-y: 0px; --m-h: 30px; --m-w: 450px; --m-r: 100px;
         }
 
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg); overflow: hidden; display: flex; justify-content: center; align-items: center; font-family: sans-serif; transition: background 0.8s ease-in-out; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg); overflow: hidden; display: flex; justify-content: center; align-items: center; font-family: sans-serif; transition: background 0.8s; }
         
-        /* Het canvas is nu transparant als er niet geslurpt wordt */
-        #particle-canvas { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+        /* HET GEZICHT (Zit nu lager qua z-index) */
+        #face-wrapper { 
+            position: relative; z-index: 5; 
+            display: flex; flex-direction: column; align-items: center; 
+            transform: scale(1.2); transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1); 
+        }
 
-        #face-wrapper { position: relative; z-index: 10; display: flex; flex-direction: column; align-items: center; transform: scale(1.2); transition: all 0.5s ease; }
+        /* HET CANVAS (Ligt nu BOVENOP het gezicht) */
+        #particle-canvas { position: absolute; inset: 0; z-index: 15; pointer-events: none; }
 
         .eyes { display: flex; gap: 80px; margin-bottom: 40px; }
         .eye { width: 250px; height: 250px; background: #fff; border-radius: 50%; position: relative; overflow: hidden; box-shadow: 0 0 60px var(--glow); transition: 0.4s; }
@@ -27,31 +32,30 @@
             width: var(--m-w); height: var(--m-h); background: var(--accent); border-radius: var(--m-r); 
             box-shadow: 0 0 40px var(--glow); transform: translate(var(--m-x), var(--m-y)); 
             transition: width 0.4s, height 0.15s, transform 0.6s, border-radius 0.4s, background 0.4s; 
+            position: relative;
         }
 
         /* MODI */
         .angry .eyebrow.l { transform: rotate(20deg) translateY(60px); }
         .angry .eyebrow.r { transform: rotate(-20deg) translateY(60px); }
 
-        /* SLURPEN MODUS */
-        .slurpen { --bg: #0a1100; --m-x: 200px; --m-y: 150px; --m-h: 200px; --m-w: 200px; --m-r: 50%; --accent: #000; }
-        .slurpen .mouth { border: 12px solid #0f0; box-shadow: 0 0 80px #0f0; animation: suck-pulse 0.2s infinite alternate; }
-        .slurpen .pupil { transform: translate(60px, 60px); }
+        /* SLURPEN: Mond staat nu HOGER (--m-y is minder diep) */
+        .slurpen { --bg: #050a00; --m-x: 180px; --m-y: 20px; --m-h: 220px; --m-w: 220px; --m-r: 50%; --accent: #000; }
+        .slurpen .mouth { border: 12px solid #0f0; box-shadow: 0 0 100px #0f0; animation: suck-pulse 0.2s infinite alternate; }
+        .slurpen .pupil { transform: translate(60px, 40px); }
 
-        /* SUPER BLIJ MODUS (HEERLIJK BLAUW) */
         .super-blij { --bg: #0070f3; --accent: #fff; --glow: rgba(255,255,255,0.8); --m-h: 180px; --m-w: 520px; --m-r: 20px 20px 220px 220px; }
         .super-blij .eyebrow { transform: translateY(-60px); }
-        .super-blij .eye { box-shadow: 0 0 40px rgba(255,255,255,0.5); }
         .super-blij .pupil { background: #0044ff; }
 
-        @keyframes suck-pulse { from { transform: translate(200px, 150px) scale(0.92); } to { transform: translate(200px, 150px) scale(1.08); } }
+        @keyframes suck-pulse { from { transform: translate(180px, 20px) scale(0.95); } to { transform: translate(180px, 20px) scale(1.05); } }
         .blink .eye { transform: scaleY(0.05); }
-        #overlay { position: fixed; inset: 0; background: #000; color: #f00; display: flex; justify-content: center; align-items: center; z-index: 1000; cursor: pointer; font-size: 32px; font-weight: bold; font-family: monospace; text-transform: uppercase; }
+        #overlay { position: fixed; inset: 0; background: #000; color: #f00; display: flex; justify-content: center; align-items: center; z-index: 1000; cursor: pointer; font-size: 32px; font-weight: bold; font-family: monospace; }
     </style>
 </head>
 <body class="angry">
 
-    <div id="overlay" onclick="startApp()">[ SYSTEEM BOOTEN... ]</div>
+    <div id="overlay" onclick="startApp()">[ SYSTEEM INITIALISEREN... ]</div>
     <canvas id="particle-canvas"></canvas>
 
     <div id="face-wrapper">
@@ -75,7 +79,6 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // --- ENERGIE PARTICLE ENGINE ---
         const canvas = document.getElementById('particle-canvas');
         const ctx = canvas.getContext('2d');
         let particles = [];
@@ -87,10 +90,12 @@
         class EnergyParticle {
             constructor() { this.reset(); }
             reset() {
-                this.x = canvas.width + (Math.random() * 300);
-                this.y = canvas.height + (Math.random() * 300);
-                this.size = Math.random() * 10 + 2;
-                this.speed = Math.random() * 0.05 + 0.02;
+                // Verschijnen buiten beeld rechtsonder
+                this.x = canvas.width + (Math.random() * 400);
+                this.y = canvas.height + (Math.random() * 400);
+                this.size = Math.random() * 12 + 4;
+                this.maxSize = this.size;
+                this.speed = Math.random() * 0.06 + 0.03; 
                 this.color = `hsla(${Math.random() * 40 + 100}, 100%, 60%, ${Math.random() * 0.5 + 0.5})`;
             }
             update() {
@@ -98,12 +103,21 @@
                 const mouthPos = document.getElementById('mouth').getBoundingClientRect();
                 const tX = mouthPos.left + mouthPos.width / 2;
                 const tY = mouthPos.top + mouthPos.height / 2;
+
+                // Bewegen naar de mond
                 this.x += (tX - this.x) * this.speed;
                 this.y += (tY - this.y) * this.speed;
-                if (Math.abs(this.x - tX) < 30 && Math.abs(this.y - tY) < 30) this.reset();
+
+                // "Eet" effect: Krimpen als ze dichtbij de mond komen
+                let dist = Math.hypot(tX - this.x, tY - this.y);
+                if (dist < 150) {
+                    this.size = (dist / 150) * this.maxSize; // Wordt kleiner naarmate hij dichterbij komt
+                }
+
+                if (dist < 10) this.reset();
             }
             draw() {
-                if (!isSucking) return;
+                if (!isSucking || this.size < 0.1) return;
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
                 ctx.fillStyle = this.color;
@@ -113,17 +127,14 @@
             }
         }
 
-        for(let i=0; i<250; i++) particles.push(new EnergyParticle());
+        for(let i=0; i<300; i++) particles.push(new EnergyParticle());
 
         function animate() {
             if (isSucking) {
-                // Als we slurpen: teken zwarte achtergrond met trails
-                ctx.fillStyle = 'rgba(0, 10, 0, 0.2)';
+                ctx.fillStyle = 'rgba(0, 15, 0, 0.2)'; // Lichtgroene trails
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 particles.forEach(p => { p.update(); p.draw(); });
             } else {
-                // Als we NIET slurpen: Maak het canvas HELEMAAL LEEG
-                // zodat de blauwe CSS achtergrond zichtbaar wordt
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
             }
             requestAnimationFrame(animate);
