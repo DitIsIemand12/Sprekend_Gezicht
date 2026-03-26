@@ -2,49 +2,47 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <title>iPad Pro - Energy Eater Fix</title>
+    <title>iPad Pro - Final Boss Edition</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
         :root {
             --bg: #000; --accent: #ff0000; --glow: rgba(255,0,0,0.6);
-            --m-x: 0px; --m-y: 0px; --m-h: 35px; --m-w: 450px; --m-r: 100px;
+            --m-x: 0px; --m-y: 0px; --m-h: 40px; --m-w: 450px;
         }
 
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg); overflow: hidden; display: flex; justify-content: center; align-items: center; font-family: sans-serif; transition: background 0.8s ease-in-out; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg); overflow: hidden; display: flex; justify-content: center; align-items: center; font-family: sans-serif; transition: background 0.5s; }
         
-        /* GEZICHT: z-index lager dan canvas */
-        #face-wrapper { position: relative; z-index: 5; display: flex; flex-direction: column; align-items: center; transform: scale(1.2); transition: all 0.6s ease; }
-        
-        /* CANVAS: z-index hoger zodat particles over het gezicht vliegen */
-        #particle-canvas { position: absolute; inset: 0; z-index: 20; pointer-events: none; }
+        /* De lagen */
+        #face-wrapper { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 5; transform: scale(1.2); transition: all 0.5s ease; }
+        #particle-canvas { position: absolute; inset: 0; z-index: 10; pointer-events: none; }
 
-        .eyes { display: flex; gap: 80px; margin-bottom: 40px; }
+        .eyes { display: flex; gap: 80px; margin-bottom: 50px; }
         .eye { width: 250px; height: 250px; background: #fff; border-radius: 50%; position: relative; overflow: hidden; box-shadow: 0 0 60px var(--glow); transition: 0.4s; }
-        .eyebrow { position: absolute; width: 130%; height: 60px; background: var(--bg); top: -20px; left: -15%; transition: 0.4s; z-index: 2; }
-        .pupil { position: absolute; width: 90px; height: 90px; background: #000; border-radius: 50%; top: 80px; left: 80px; transition: 0.15s ease-out; }
+        .eyebrow { position: absolute; width: 130%; height: 80px; background: var(--bg); top: -30px; left: -15%; transition: 0.4s; z-index: 2; }
+        .pupil { position: absolute; width: 100px; height: 100px; background: #000; border-radius: 50%; top: 75px; left: 75px; transition: 0.1s; }
 
         .mouth { 
-            width: var(--m-w); height: var(--m-h); background: var(--accent); border-radius: var(--m-r); 
+            width: var(--m-w); height: var(--m-h); background: var(--accent); border-radius: 100px; 
             box-shadow: 0 0 50px var(--glow); transform: translate(var(--m-x), var(--m-y)); 
-            transition: width 0.4s, height 0.15s, transform 0.6s, border-radius 0.4s;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* MODUS: BOOS */
-        .angry .eyebrow.l { transform: rotate(20deg) translateY(60px); }
-        .angry .eyebrow.r { transform: rotate(-20deg) translateY(60px); }
+        /* MODI */
+        .angry .eyebrow.l { transform: rotate(22deg) translateY(65px); }
+        .angry .eyebrow.r { transform: rotate(-22deg) translateY(65px); }
 
-        /* MODUS: SLURPEN (Fix: Mond staat nu een stuk hoger) */
-        .slurpen { --bg: #000; --m-x: 200px; --m-y: -100px; --m-h: 220px; --m-w: 220px; --m-r: 50%; --accent: #000; }
-        .slurpen .mouth { border: 12px solid #0f0; box-shadow: 0 0 100px #0f0; animation: suck 0.2s infinite alternate; }
-        .slurpen .pupil { transform: translate(60px, 40px); }
+        /* SLURPEN: Mond als zwart gat, hoog op het scherm */
+        .slurpen { --bg: #000; --m-x: 200px; --m-y: -150px; --m-h: 250px; --m-w: 250px; --accent: #000; }
+        .slurpen .mouth { border: 15px solid #0f0; box-shadow: 0 0 100px #0f0; border-radius: 50%; }
+        .slurpen .pupil { transform: translate(50px, 40px) scale(1.2); }
 
-        /* MODUS: SUPER-BLIJ */
-        .super-blij { --bg: #0070f3; --accent: #fff; --glow: rgba(255,255,255,0.8); --m-h: 180px; --m-w: 520px; --m-r: 20px 20px 220px 220px; }
+        /* SUPER BLIJ: Helder blauw */
+        .super-blij { --bg: #0070f3; --accent: #fff; --glow: rgba(255,255,255,0.8); --m-h: 180px; --m-w: 550px; }
+        .super-blij .mouth { border-radius: 20px 20px 250px 250px; }
+        .super-blij .eyebrow { transform: translateY(-80px); }
         .super-blij .pupil { background: #0044ff; }
-        .super-blij .eyebrow { transform: translateY(-60px); }
 
-        @keyframes suck { from { transform: translate(200px, -100px) scale(0.95); } to { transform: translate(200px, -100px) scale(1.05); } }
         .blink .eye { transform: scaleY(0.05); }
         #overlay { position: fixed; inset: 0; background: #000; color: #0f0; display: flex; justify-content: center; align-items: center; z-index: 1000; cursor: pointer; font-size: 30px; font-weight: bold; font-family: monospace; }
     </style>
@@ -52,6 +50,7 @@
 <body class="angry">
 
     <div id="overlay" onclick="startApp()">[ SYSTEEM BOOTEN ]</div>
+    
     <canvas id="particle-canvas"></canvas>
 
     <div id="face-wrapper">
@@ -83,48 +82,62 @@
         function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
         window.onresize = resize; resize();
 
-        class EnergyParticle {
+        class EnergyWisp {
             constructor() { this.reset(); }
             reset() {
-                // Verschijnen buiten beeld rechtsonder
-                this.x = canvas.width + (Math.random() * 500);
-                this.y = canvas.height + (Math.random() * 500);
-                this.size = Math.random() * 15 + 5;
-                this.maxSize = this.size;
-                this.speed = Math.random() * 0.08 + 0.04; 
-                this.color = `hsla(${Math.random() * 40 + 100}, 100%, 60%, ${Math.random() * 0.5 + 0.5})`;
+                this.x = canvas.width + Math.random() * 500;
+                this.y = canvas.height + Math.random() * 500;
+                this.size = Math.random() * 8 + 4;
+                this.history = []; // Voor de staart
+                this.speed = Math.random() * 0.1 + 0.05;
+                this.color = Math.random() > 0.2 ? '#0f0' : '#fff';
             }
-            update() {
-                if (!isSucking) return;
-                const mPos = document.getElementById('mouth').getBoundingClientRect();
-                const tX = mPos.left + mPos.width / 2;
-                const tY = mPos.top + mPos.height / 2;
+            update(tx, ty) {
+                // Sla positie op voor staart
+                this.history.push({x: this.x, y: this.y});
+                if(this.history.length > 10) this.history.shift();
 
-                this.x += (tX - this.x) * this.speed;
-                this.y += (tY - this.y) * this.speed;
+                // Beweeg naar mond
+                this.x += (tx - this.x) * this.speed;
+                this.y += (ty - this.y) * this.speed;
 
-                // Eet-effect: krimpen naarmate ze de mond raken
-                let d = Math.hypot(tX - this.x, tY - this.y);
-                if (d < 250) this.size = (d / 250) * this.maxSize;
-                if (d < 10) this.reset();
+                if (Math.hypot(tx - this.x, ty - this.y) < 15) this.reset();
             }
             draw() {
-                if (!isSucking || this.size < 0.5) return;
-                ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fillStyle = this.color; ctx.shadowBlur = 20; ctx.shadowColor = this.color; ctx.fill();
+                // Teken de staart
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y);
+                for(let i = this.history.length-1; i>=0; i--) {
+                    ctx.lineTo(this.history[i].x, this.history[i].y);
+                }
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = this.size;
+                ctx.lineCap = 'round';
+                ctx.stroke();
+                
+                // Kopje
+                ctx.fillStyle = '#fff';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size/2, 0, Math.PI*2);
+                ctx.fill();
             }
         }
 
-        for(let i=0; i<350; i++) particles.push(new EnergyParticle());
+        for(let i=0; i<60; i++) particles.push(new EnergyWisp());
 
         function animate() {
+            // WIS HET SCHERM ELKE FRAME 100% SCHOON
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
             if (isSucking) {
-                // BELANGRIJK: Gebruik puur zwart voor de trails, zo voorkom je de groene mist
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.2)'; 
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                particles.forEach(p => { p.update(); p.draw(); });
-            } else {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                const mPos = document.getElementById('mouth').getBoundingClientRect();
+                const tx = mPos.left + mPos.width / 2;
+                const ty = mPos.top + mPos.height / 2;
+                
+                particles.forEach(p => {
+                    p.update(tx, ty);
+                    p.draw();
+                });
             }
             requestAnimationFrame(animate);
         }
@@ -152,7 +165,7 @@
                 this.talkInterval = setInterval(() => {
                     if (document.body.className === 'slurpen') return;
                     const m = document.getElementById('mouth');
-                    let baseH = document.body.className === 'super-blij' ? 160 : 35;
+                    let baseH = document.body.className === 'super-blij' ? 180 : 40;
                     m.style.height = (baseH + Math.random() * 80) + "px";
                 }, 80);
             };
@@ -160,10 +173,9 @@
             synth.speak(utter);
         }
 
-        // Pupillen bewegen
         setInterval(() => {
             if (!isSucking) {
-                const x = (Math.random()*40 - 20) + 80; const y = (Math.random()*40 - 20) + 80;
+                const x = (Math.random()*40 - 20) + 75; const y = (Math.random()*40 - 20) + 75;
                 document.getElementById('p1').style.left = x + "px"; document.getElementById('p1').style.top = y + "px";
                 document.getElementById('p2').style.left = x + "px"; document.getElementById('p2').style.top = y + "px";
             }
