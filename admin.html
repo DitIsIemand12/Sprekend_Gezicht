@@ -3,49 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>iPad Admin - Final Control</title>
+    <title>Master Admin - Firebase Login</title>
+    <!-- Firebase SDKs (Compat versies) -->
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
-        body { font-family: -apple-system, sans-serif; background: #121212; color: #eee; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; }
-        .card { background: #1e1e1e; width: 100%; max-width: 450px; padding: 25px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.6); border: 1px solid #333; text-align: center; margin-bottom: 20px; }
+        body { font-family: sans-serif; background: #121212; color: #eee; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .card { background: #1e1e1e; width: 90%; max-width: 400px; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #333; text-align: center; }
+        input { width: 100%; padding: 15px; background: #252525; border: 1px solid #444; border-radius: 12px; color: #fff; font-size: 16px; box-sizing: border-box; margin-bottom: 10px; outline: none; }
+        button { width: 100%; padding: 15px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 15px; transition: 0.2s; text-transform: uppercase; margin-top: 5px; }
+        
         #login-screen { display: block; }
         #admin-panel { display: none; }
-        h2 { margin-top: 0; color: #ff9500; }
-        h3 { color: #666; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; margin-top: 25px; }
-        input { width: 100%; padding: 18px; background: #252525; border: 1px solid #444; border-radius: 12px; color: #fff; font-size: 18px; box-sizing: border-box; outline: none; margin-bottom: 15px; }
-        button { width: 100%; padding: 18px; margin: 8px 0; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 16px; transition: all 0.2s; text-transform: uppercase; }
-        button:active { transform: scale(0.96); }
-        .btn-login { background: #ff9500; color: #000; }
+
+        .btn-login { background: #34c759; color: #fff; }
         .btn-angry { background: #300; color: #f44; border: 1px solid #f44; }
         .btn-slurp { background: #030; color: #0f0; border: 1px solid #0f0; }
-        .btn-blij { background: #002244; color: #0088ff; border: 1px solid #0088ff; }
-        .btn-special { background: #444; color: #fff; border: 1px dotted #888; }
+        .btn-blij { background: #024; color: #08f; border: 1px solid #08f; }
+        .btn-special { background: #444; color: #fff; }
         .btn-dead { background: #000; color: #aaa; border: 2px solid #555; }
         .btn-speak { background: #fff; color: #000; margin-top: 15px; }
+        
+        .error { color: #ff4444; font-size: 12px; margin-top: 10px; }
+        h3 { color: #666; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; margin-top: 20px; }
     </style>
 </head>
 <body>
 
+    <!-- INLOGSCHERM -->
     <div id="login-screen" class="card">
-        <h2>Systeem Lock</h2>
-        <input type="password" id="passInput" placeholder="Wachtwoord...">
-        <button class="btn-login" onclick="tryLogin()">Ontgrendelen</button>
+        <h2>Systeem Login</h2>
+        <input type="email" id="email" placeholder="Email (thijnmuller1@gmail.com)">
+        <input type="password" id="password" placeholder="Wachtwoord">
+        <button class="btn-login" onclick="login()">Inloggen</button>
+        <p id="err-msg" class="error"></p>
     </div>
 
+    <!-- BEDIENINGSPANEEL -->
     <div id="admin-panel" class="card">
-        <h3>Normale Modi</h3>
+        <h3>Gezicht Toestand</h3>
         <button class="btn-angry" onclick="setEmo('angry')">Enge Tablet</button>
         <button class="btn-slurp" onclick="setEmo('slurpen')">Energie Slurpen</button>
         <button class="btn-blij" onclick="setEmo('super-blij')">Super Blij</button>
 
-        <h3>Speciale Acties</h3>
-        <button class="btn-special" onclick="setEmo('hidden')">Verdwijnen (Val omlaag)</button>
-        <button class="btn-dead" onclick="setEmo('dead')">Uitschakelen (Dood)</button>
+        <h3>Specials</h3>
+        <button class="btn-special" onclick="setEmo('hidden')">Verdwijnen</button>
+        <button class="btn-dead" onclick="setEmo('dead')">Uitschakelen</button>
 
-        <h3>Spreken</h3>
+        <h3>Spraak</h3>
         <input type="text" id="speechText" placeholder="Typ je tekst..." autocomplete="off">
         <button class="btn-speak" onclick="say()">Verstuur Spraak</button>
+        <br><br>
+        <button onclick="logout()" style="background:transparent; color:#555; font-size:10px;">Uitloggen</button>
     </div>
 
     <script>
@@ -59,26 +69,36 @@
           appId: "1:512534815557:web:6d852b4fb27804813e942c"
         };
         firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
         const db = firebase.database();
-        let authKey = "";
 
-        function tryLogin() {
-            const input = document.getElementById('passInput').value;
-            db.ref('password').set(input).then(() => {
-                authKey = input;
+        // Check of we al ingelogd zijn
+        auth.onAuthStateChanged(user => {
+            if (user) {
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('admin-panel').style.display = 'block';
-            }).catch(err => { alert("Fout!"); });
+            } else {
+                document.getElementById('login-screen').style.display = 'block';
+                document.getElementById('admin-panel').style.display = 'none';
+            }
+        });
+
+        function login() {
+            const e = document.getElementById('email').value;
+            const p = document.getElementById('password').value;
+            auth.signInWithEmailAndPassword(e, p).catch(err => {
+                document.getElementById('err-msg').innerText = "Inloggen mislukt: " + err.message;
+            });
         }
 
-        function setEmo(emo) {
-            db.ref('/').update({ "password": authKey, "tablet_emotion": emo });
-        }
+        function logout() { auth.signOut(); }
+
+        function setEmo(emo) { db.ref('tablet_emotion').set(emo); }
 
         function say() {
             const txt = document.getElementById('speechText').value;
             if(txt) {
-                db.ref('/').update({ "password": authKey, "tablet_speech": { text: txt, time: Date.now() } });
+                db.ref('tablet_speech').set({ text: txt, time: Date.now() });
                 document.getElementById('speechText').value = "";
             }
         }
