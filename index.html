@@ -2,7 +2,7 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <title>iPad Pro - Sound & Sync Edition</title>
+    <title>iPad Pro - Robot Evolution</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
@@ -24,21 +24,29 @@
         .mouth { 
             width: var(--m-w); height: var(--m-h); background: var(--accent); border-radius: 100px; 
             box-shadow: 0 0 50px var(--glow); transform: translate(var(--m-x), var(--m-y)); 
-            transition: width 0.4s, height 0.08s, transform 0.6s, border-radius 0.4s;
+            transition: width 0.4s, height 0.05s, transform 0.6s, border-radius 0.4s;
         }
 
         /* MODI */
-        .angry .eyebrow.l { transform: rotate(22deg) translateY(65px); }
-        .angry .eyebrow.r { transform: rotate(-22deg) translateY(65px); }
+        .angry .eyebrow.l { transform: rotate(25deg) translateY(70px); }
+        .angry .eyebrow.r { transform: rotate(-25deg) translateY(70px); }
 
         .slurpen { --bg: #000; --m-x: 200px; --m-y: 80px; --m-h: 250px; --m-w: 250px; --accent: #000; }
         .slurpen .mouth { border: 15px solid #0f0; box-shadow: 0 0 100px #0f0; border-radius: 50%; }
         .slurpen .pupil { transform: translate(50px, 40px) scale(1.2); }
 
-        .super-blij { --bg: #0070f3; --accent: #fff; --glow: rgba(255,255,255,0.8); --m-h: 180px; --m-w: 550px; }
-        .super-blij .mouth { border-radius: 20px 20px 250px 250px; }
-        .super-blij .eyebrow { transform: translateY(-80px); }
+        .super-blij { --bg: #00aaff; --accent: #fff; --glow: rgba(255,255,255,1); --m-h: 200px; --m-w: 550px; }
+        .super-blij .mouth { border-radius: 20px 20px 250px 250px; box-shadow: 0 10px 60px #fff; }
+        .super-blij .eyebrow { transform: translateY(-90px); }
         .super-blij .pupil { background: #0044ff; }
+
+        /* Robotisch trillen als hij boos praat */
+        .robot-vibrate { animation: vibrate 0.1s infinite; }
+        @keyframes vibrate {
+            0% { transform: scale(1.2) translate(2px, 2px); }
+            50% { transform: scale(1.2) translate(-2px, -2px); }
+            100% { transform: scale(1.2) translate(2px, -2px); }
+        }
 
         @keyframes suck { from { transform: translate(200px, 80px) scale(0.95); } to { transform: translate(200px, 80px) scale(1.05); } }
         .slurpen .mouth { animation: suck 0.2s infinite alternate; }
@@ -49,18 +57,11 @@
 <body class="angry">
 
     <div id="overlay" onclick="startApp()">[ SYSTEEM BOOTEN ]</div>
-    
     <canvas id="particle-canvas"></canvas>
-
     <div id="face-wrapper">
-        <div class="eyes">
-            <div class="eye"><div class="eyebrow l"></div><div class="pupil" id="p1"></div></div>
-            <div class="eye"><div class="eyebrow r"></div><div class="pupil" id="p2"></div></div>
-        </div>
+        <div class="eyes"><div class="eye"><div class="eyebrow l"></div><div class="pupil" id="p1"></div></div><div class="eye"><div class="eyebrow r"></div><div class="pupil" id="p2"></div></div></div>
         <div class="mouth" id="mouth"></div>
     </div>
-
-    <!-- Slurp Audio Element -->
     <audio id="slurpSound" loop src="slurp.mp3"></audio>
 
     <script>
@@ -79,50 +80,35 @@
         const canvas = document.getElementById('particle-canvas');
         const ctx = canvas.getContext('2d');
         const slurpAudio = document.getElementById('slurpSound');
-        let particles = [];
+        const face = document.getElementById('face-wrapper');
         let isSucking = false;
 
         function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
         window.onresize = resize; resize();
 
+        // Particle systeem voor deeltjes
         class EnergyWisp {
             constructor() { this.reset(); }
-            reset() {
-                this.x = canvas.width + Math.random() * 500;
-                this.y = canvas.height + Math.random() * 500;
-                this.size = Math.random() * 8 + 4;
-                this.history = [];
-                this.speed = Math.random() * 0.1 + 0.05;
-                this.color = Math.random() > 0.2 ? '#0f0' : '#fff';
-            }
+            reset() { this.x = canvas.width + Math.random() * 500; this.y = canvas.height + Math.random() * 500; this.size = Math.random() * 8 + 4; this.history = []; this.speed = Math.random() * 0.1 + 0.05; this.color = Math.random() > 0.2 ? '#0f0' : '#fff'; }
             update(tx, ty) {
-                this.history.push({x: this.x, y: this.y});
-                if(this.history.length > 10) this.history.shift();
-                this.x += (tx - this.x) * this.speed;
-                this.y += (ty - this.y) * this.speed;
+                this.history.push({x: this.x, y: this.y}); if(this.history.length > 10) this.history.shift();
+                this.x += (tx - this.x) * this.speed; this.y += (ty - this.y) * this.speed;
                 if (Math.hypot(tx - this.x, ty - this.y) < 15) this.reset();
             }
             draw() {
-                ctx.beginPath();
-                ctx.moveTo(this.x, this.y);
+                ctx.beginPath(); ctx.moveTo(this.x, this.y);
                 for(let i = this.history.length-1; i>=0; i--) { ctx.lineTo(this.history[i].x, this.history[i].y); }
-                ctx.strokeStyle = this.color;
-                ctx.lineWidth = this.size;
-                ctx.lineCap = 'round';
-                ctx.stroke();
-                ctx.fillStyle = '#fff';
-                ctx.beginPath(); ctx.arc(this.x, this.y, this.size/2, 0, Math.PI*2); ctx.fill();
+                ctx.strokeStyle = this.color; ctx.lineWidth = this.size; ctx.lineCap = 'round'; ctx.stroke();
+                ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(this.x, this.y, this.size/2, 0, Math.PI*2); ctx.fill();
             }
         }
-
-        for(let i=0; i<60; i++) particles.push(new EnergyWisp());
+        let particles = Array.from({length: 60}, () => new EnergyWisp());
 
         function animate() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             if (isSucking) {
                 const mPos = document.getElementById('mouth').getBoundingClientRect();
-                const tx = mPos.left + mPos.width / 2;
-                const ty = mPos.top + mPos.height / 2;
+                const tx = mPos.left + mPos.width / 2; const ty = mPos.top + mPos.height / 2;
                 particles.forEach(p => { p.update(tx, ty); p.draw(); });
             }
             requestAnimationFrame(animate);
@@ -135,20 +121,11 @@
                 const emo = snap.val() || 'angry';
                 document.body.className = emo;
                 isSucking = (emo === 'slurpen');
-                
-                // Audio beheer
-                if (isSucking) {
-                    slurpAudio.play().catch(e => console.log("Klik eerst op het scherm!"));
-                } else {
-                    slurpAudio.pause();
-                    slurpAudio.currentTime = 0;
-                }
-                
+                if (isSucking) slurpAudio.play(); else { slurpAudio.pause(); slurpAudio.currentTime = 0; }
                 document.getElementById('mouth').style.height = "";
             });
             db.ref('tablet_speech').on('value', snap => {
-                const data = snap.val();
-                if(data) speak(data.text);
+                const data = snap.val(); if(data) speak(data.text);
             });
         }
 
@@ -157,41 +134,38 @@
             const utter = new SpeechSynthesisUtterance(text);
             utter.lang = 'nl-NL';
 
-            // Stem-profiel instellen op basis van emotie
             const currentEmo = document.body.className;
+            
+            // ROBOTISCHE STEM INSTELLINGEN
             if (currentEmo === 'super-blij') {
-                utter.pitch = 1.5;  // Vrolijk hoog
-                utter.rate = 1.1;   // Iets sneller
-            } else if (currentEmo === 'angry' || currentEmo === 'slurpen') {
-                utter.pitch = 0.2;  // Enge lage stem
-                utter.rate = 0.8;   // Traag en dreigend
+                utter.pitch = 2.0;  // Maximaal hoog (Hyper-robot)
+                utter.rate = 1.4;   // Heel snel
+            } else {
+                utter.pitch = 0.1;  // Maximaal laag (Monster-robot)
+                utter.rate = 0.6;   // Heel traag
+                face.classList.add('robot-vibrate'); // Trillen bij boze stem
             }
 
             utter.onboundary = (event) => {
                 if (document.body.className === 'slurpen') return;
                 const m = document.getElementById('mouth');
-                let baseH = document.body.className === 'super-blij' ? 180 : 40;
-                // Hap beweging
-                m.style.height = (baseH + Math.random() * 90) + "px";
-                setTimeout(() => {
-                    m.style.height = baseH + "px";
-                }, 100);
+                let baseH = document.body.className === 'super-blij' ? 200 : 40;
+                // Extreme mondbeweging
+                m.style.height = (baseH + Math.random() * 120) + "px";
+                setTimeout(() => m.style.height = baseH + "px", 70);
             };
 
             utter.onend = () => { 
                 document.getElementById('mouth').style.height = ""; 
+                face.classList.remove('robot-vibrate');
             };
             
+            synth.cancel(); // Stop huidige spraak voor nieuwe
             synth.speak(utter);
         }
 
-        setInterval(() => {
-            if (!isSucking) {
-                const x = (Math.random()*40 - 20) + 75; const y = (Math.random()*40 - 20) + 75;
-                document.getElementById('p1').style.left = x + "px"; document.getElementById('p1').style.top = y + "px";
-                document.getElementById('p2').style.left = x + "px"; document.getElementById('p2').style.top = y + "px";
-            }
-        }, 2000);
+        // Pupillen & Knipperen
+        setInterval(() => { if (!isSucking) { const x = (Math.random()*40 - 20) + 75; const y = (Math.random()*40 - 20) + 75; document.getElementById('p1').style.left = x + "px"; document.getElementById('p1').style.top = y + "px"; document.getElementById('p2').style.left = x + "px"; document.getElementById('p2').style.top = y + "px"; } }, 2000);
         setInterval(() => { document.body.classList.add('blink'); setTimeout(() => document.body.classList.remove('blink'), 150); }, 4500);
     </script>
 </body>
