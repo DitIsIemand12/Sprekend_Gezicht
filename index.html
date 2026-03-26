@@ -2,109 +2,100 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <title>iPad Karakter - Pro Edition</title>
+    <title>iPad Pro - Dynamic Face</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
         :root {
-            --bg-color: #0a0a0a;
-            --accent: #ff0000;
-            --eye-bg: #ffffff;
-            --pupil: #000000;
-            --glow: rgba(255, 0, 0, 0.4);
+            --bg: #000; --accent: #ff0000; --glow: rgba(255,0,0,0.5);
+            --face-scale: 1; --face-x: 0; --face-y: 0;
         }
 
         body, html { 
             margin: 0; padding: 0; width: 100%; height: 100%; 
-            background: var(--bg-color); overflow: hidden;
+            background: var(--bg); overflow: hidden;
             display: flex; justify-content: center; align-items: center;
-            transition: background 1s ease; font-family: sans-serif;
+            font-family: sans-serif; transition: background 1s;
         }
 
-        /* De container die over het scherm beweegt */
-        #character-wrapper {
-            position: absolute;
+        /* De deeltjes achtergrond */
+        #particle-canvas {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 1;
+        }
+
+        /* Het gezicht container */
+        #face-wrapper {
+            position: relative; z-index: 10;
             display: flex; flex-direction: column; align-items: center;
-            transition: all 1.2s cubic-bezier(0.68, -0.55, 0.27, 1.55);
-            width: 500px;
+            transform: translate(var(--face-x), var(--face-y)) scale(var(--face-scale));
+            transition: all 1s cubic-bezier(0.4, 0, 0.2, 1);
+            will-change: transform;
         }
 
-        /* Oog Sectie */
-        .eyes-container { display: flex; gap: 40px; margin-bottom: 40px; }
-        
+        /* Zweef animatie */
+        .float-anim { animation: float 4s infinite ease-in-out; }
+        @keyframes float {
+            0%, 100% { margin-top: 0; }
+            50% { margin-top: -20px; }
+        }
+
+        /* Ogen */
+        .eyes { display: flex; gap: 50px; margin-bottom: 50px; }
+        .eye {
+            width: 170px; height: 170px; background: #fff; border-radius: 50%;
+            position: relative; overflow: hidden; box-shadow: 0 0 50px var(--glow);
+            transition: 0.3s;
+        }
         .eyebrow {
-            position: absolute; width: 140px; height: 30px; 
-            background: var(--accent); top: -40px; border-radius: 20px;
-            transition: all 0.4s ease; box-shadow: 0 0 15px var(--glow);
+            position: absolute; width: 120%; height: 40px; background: var(--bg);
+            top: -20px; left: -10%; transition: 0.4s; z-index: 2;
         }
-
-        .eye { 
-            width: 160px; height: 160px; background: var(--eye-bg); 
-            border-radius: 50%; position: relative; overflow: hidden;
-            box-shadow: 0 0 40px var(--glow); transition: 0.4s;
-        }
-
-        .pupil { 
-            width: 60px; height: 60px; background: var(--pupil); 
-            border-radius: 50%; position: absolute; top: 50px; left: 50px; 
-            transition: transform 0.1s linear;
+        .pupil {
+            position: absolute; width: 60px; height: 60px; background: #000;
+            border-radius: 50%; top: 55px; left: 55px; transition: 0.1s ease-out;
         }
 
         /* Mond */
-        .mouth { 
-            width: 250px; height: 20px; background: var(--accent); 
-            border-radius: 50px; box-shadow: 0 0 30px var(--glow);
-            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        .mouth {
+            width: 280px; height: 20px; background: var(--accent);
+            border-radius: 100px; box-shadow: 0 0 30px var(--glow);
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        /* --- MODUS: ANGRY --- */
-        .angry .eyebrow.left { transform: rotate(15deg) translateY(20px); }
-        .angry .eyebrow.right { transform: rotate(-15deg) translateY(20px); }
+        /* MODI CSS */
+        .angry .eyebrow.l { transform: rotate(20deg) translateY(35px); }
+        .angry .eyebrow.r { transform: rotate(-20deg) translateY(35px); }
 
-        /* --- MODUS: SLURPEN (Rechteronderhoek) --- */
-        .slurpen { --bg-color: #1a0000; }
-        .slurpen #character-wrapper {
-            transform: translate(35vw, 30vh) scale(0.6);
-            animation: vibrate 0.1s infinite;
-        }
+        .slurpen { animation: shake 0.1s infinite; --face-x: 30vw; --face-y: 30vh; --face-scale: 0.7; }
         .slurpen .mouth { 
-            height: 150px; width: 150px; border-radius: 50%; 
-            background: #000; border: 10px solid red;
-            box-shadow: 0 0 60px red;
-            animation: pulse-mouth 0.5s infinite alternate;
+            height: 180px; width: 180px; border-radius: 50%; 
+            background: #000; border: 8px solid #0f0; box-shadow: 0 0 50px #0f0; 
         }
 
-        /* --- MODUS: SUPER-BLIJ --- */
-        .super-blij { --bg-color: #007AFF; --accent: #fff; --glow: rgba(255,255,255,0.6); --pupil: #0044ff; }
-        .super-blij .eyebrow { transform: translateY(-20px) rotate(0deg); height: 15px; }
-        .super-blij .mouth { height: 120px; border-radius: 10px 10px 150px 150px; }
+        .super-blij { --bg: #0066ff; --accent: #fff; --glow: rgba(255,255,255,0.7); }
+        .super-blij .eyebrow { transform: translateY(-30px); }
+        .super-blij .mouth { height: 140px; border-radius: 20px 20px 150px 150px; }
 
-        /* Animaties */
-        @keyframes vibrate { 0% { margin-left: 0; } 100% { margin-left: 5px; } }
-        @keyframes pulse-mouth { from { transform: scale(1); } to { transform: scale(1.1); } }
-        
-        .blink .eye { transform: scaleY(0.05); }
+        @keyframes shake { 0% { transform: translate(calc(var(--face-x) + 2px), var(--face-y)); } 100% { transform: translate(var(--face-x), calc(var(--face-y) + 2px)); } }
 
-        #overlay { 
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: black; color: red; display: flex; 
-            justify-content: center; align-items: center; z-index: 999;
-            cursor: pointer; font-size: 24px; font-weight: bold;
-        }
+        #overlay { position: fixed; inset: 0; background: #000; color: red; display: flex; justify-content: center; align-items: center; z-index: 1000; cursor: pointer; font-size: 24px; letter-spacing: 2px; }
     </style>
 </head>
 <body class="angry">
 
-    <div id="overlay" onclick="startApp()">[ SYSTEEM INITIALISEREN... ]</div>
+    <div id="overlay" onclick="startApp()">[ Systeem Online Brengen ]</div>
+    
+    <canvas id="particle-canvas"></canvas>
 
-    <div id="character-wrapper">
-        <div class="eyes-container">
+    <div id="face-wrapper" class="float-anim">
+        <div class="eyes">
             <div class="eye">
-                <div class="eyebrow left"></div>
+                <div class="eyebrow l"></div>
                 <div class="pupil" id="p1"></div>
             </div>
             <div class="eye">
-                <div class="eyebrow right"></div>
+                <div class="eyebrow r"></div>
                 <div class="pupil" id="p2"></div>
             </div>
         </div>
@@ -113,27 +104,75 @@
 
     <script>
         const firebaseConfig = {
-          apiKey: "AIzaSyDk5QfCGtERCKw6m3fg5FlzEDEVoBU4SU0",
-          authDomain: "scouting-3886b.firebaseapp.com",
-          databaseURL: "https://scouting-3886b-default-rtdb.europe-west1.firebasedatabase.app",
-          projectId: "scouting-3886b",
-          storageBucket: "scouting-3886b.firebasestorage.app",
-          messagingSenderId: "512534815557",
-          appId: "1:512534815557:web:6d852b4fb27804813e942c"
+            apiKey: "AIzaSyDk5QfCGtERCKw6m3fg5FlzEDEVoBU4SU0",
+            authDomain: "scouting-3886b.firebaseapp.com",
+            databaseURL: "https://scouting-3886b-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "scouting-3886b",
+            storageBucket: "scouting-3886b.firebasestorage.app",
+            messagingSenderId: "512534815557",
+            appId: "1:512534815557:web:6d852b4fb27804813e942c"
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
+        // PARTICLE SYSTEM
+        const canvas = document.getElementById('particle-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let isSucking = false;
+
+        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.onresize = resize; resize();
+
+        class Particle {
+            constructor() { this.reset(); }
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 4 + 1;
+                this.speed = Math.random() * 5 + 2;
+                this.color = Math.random() > 0.5 ? '#0f0' : '#fff';
+            }
+            update() {
+                if (isSucking) {
+                    const mouth = document.getElementById('mouth').getBoundingClientRect();
+                    const targetX = mouth.left + mouth.width / 2;
+                    const targetY = mouth.top + mouth.height / 2;
+                    this.x += (targetX - this.x) * 0.05;
+                    this.y += (targetY - this.y) * 0.05;
+                    if (Math.abs(this.x - targetX) < 10) this.reset();
+                } else {
+                    this.y -= this.speed * 0.2;
+                    if (this.y < 0) this.reset();
+                }
+            }
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        for(let i=0; i<100; i++) particles.push(new Particle());
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => { p.update(); p.draw(); });
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        // FIREBASE & LOGICA
         function startApp() {
             document.getElementById('overlay').style.display = 'none';
-            
-            db.ref('tablet_emotion').on('value', (snapshot) => {
-                const emo = snapshot.val();
-                if(emo) document.body.className = emo;
+            db.ref('tablet_emotion').on('value', snap => {
+                const emo = snap.val();
+                document.body.className = emo;
+                isSucking = (emo === 'slurpen');
             });
-
-            db.ref('tablet_speech').on('value', (snapshot) => {
-                const data = snapshot.val();
+            db.ref('tablet_speech').on('value', snap => {
+                const data = snap.val();
                 if(data) speak(data.text);
             });
         }
@@ -142,42 +181,37 @@
             const synth = window.speechSynthesis;
             const utter = new SpeechSynthesisUtterance(text);
             utter.lang = 'nl-NL';
-            
             const isHappy = document.body.classList.contains('super-blij');
-            utter.pitch = isHappy ? 1.4 : 0.2;
-            utter.rate = isHappy ? 1.1 : 0.8;
+            utter.pitch = isHappy ? 1.5 : 0.1;
+            utter.rate = isHappy ? 1.1 : 0.7;
 
             utter.onstart = () => {
                 this.talkInterval = setInterval(() => {
-                    const baseHeight = document.body.classList.contains('super-blij') ? 120 : 20;
-                    const randomMod = Math.random() * 60;
-                    document.getElementById('mouth').style.height = (baseHeight + randomMod) + "px";
-                }, 80);
+                    const h = isHappy ? (Math.random()*40 + 130) : (Math.random()*80 + 20);
+                    document.getElementById('mouth').style.height = h + "px";
+                    document.getElementById('mouth').style.width = (280 + (Math.random()*20 - 10)) + "px";
+                }, 70);
             };
             utter.onend = () => {
                 clearInterval(this.talkInterval);
-                const isSucking = document.body.classList.contains('slurpen');
-                const isHappyEnd = document.body.classList.contains('super-blij');
-                if (isSucking) document.getElementById('mouth').style.height = "150px";
-                else if (isHappyEnd) document.getElementById('mouth').style.height = "120px";
-                else document.getElementById('mouth').style.height = "20px";
+                const emo = document.body.className;
+                const m = document.getElementById('mouth');
+                if(emo === 'super-blij') m.style.height = "140px";
+                else if(emo === 'slurpen') m.style.height = "180px";
+                else m.style.height = "20px";
             };
             synth.speak(utter);
         }
 
-        // Ogen bewegen (pupillen volgen)
+        // Natuurlijke oogbewegingen
         setInterval(() => {
-            const x = (Math.random() * 60) - 30;
-            const y = (Math.random() * 60) - 30;
-            document.getElementById('p1').style.transform = `translate(${x}px, ${y}px)`;
-            document.getElementById('p2').style.transform = `translate(${x}px, ${y}px)`;
-        }, 2500);
-
-        // Knipperen
-        setInterval(() => {
-            document.body.classList.add('blink');
-            setTimeout(() => document.body.classList.remove('blink'), 150);
-        }, 4000);
+            const x = (Math.random()*30 - 15) + 55;
+            const y = (Math.random()*30 - 15) + 55;
+            document.getElementById('p1').style.left = x + "px";
+            document.getElementById('p1').style.top = y + "px";
+            document.getElementById('p2').style.left = x + "px";
+            document.getElementById('p2').style.top = y + "px";
+        }, 2000);
     </script>
 </body>
 </html>
