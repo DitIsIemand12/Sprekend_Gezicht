@@ -2,7 +2,7 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <title>iPad Pro - Final TV</title>
+    <title>iPad Pro - Energy Eater Fix</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
@@ -10,9 +10,13 @@
             --bg: #000; --accent: #ff0000; --glow: rgba(255,0,0,0.6);
             --m-x: 0px; --m-y: 0px; --m-h: 35px; --m-w: 450px; --m-r: 100px;
         }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg); overflow: hidden; display: flex; justify-content: center; align-items: center; transition: background 0.8s; }
+
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg); overflow: hidden; display: flex; justify-content: center; align-items: center; font-family: sans-serif; transition: background 0.8s ease-in-out; }
         
+        /* GEZICHT: z-index lager dan canvas */
         #face-wrapper { position: relative; z-index: 5; display: flex; flex-direction: column; align-items: center; transform: scale(1.2); transition: all 0.6s ease; }
+        
+        /* CANVAS: z-index hoger zodat particles over het gezicht vliegen */
         #particle-canvas { position: absolute; inset: 0; z-index: 20; pointer-events: none; }
 
         .eyes { display: flex; gap: 80px; margin-bottom: 40px; }
@@ -22,26 +26,32 @@
 
         .mouth { 
             width: var(--m-w); height: var(--m-h); background: var(--accent); border-radius: var(--m-r); 
-            box-shadow: 0 0 40px var(--glow); transform: translate(var(--m-x), var(--m-y)); 
+            box-shadow: 0 0 50px var(--glow); transform: translate(var(--m-x), var(--m-y)); 
             transition: width 0.4s, height 0.15s, transform 0.6s, border-radius 0.4s;
         }
 
-        .slurpen { --bg: #050a00; --m-x: 180px; --m-y: 20px; --m-h: 220px; --m-w: 220px; --m-r: 50%; --accent: #000; }
+        /* MODUS: BOOS */
+        .angry .eyebrow.l { transform: rotate(20deg) translateY(60px); }
+        .angry .eyebrow.r { transform: rotate(-20deg) translateY(60px); }
+
+        /* MODUS: SLURPEN (Fix: Mond staat nu een stuk hoger) */
+        .slurpen { --bg: #000; --m-x: 200px; --m-y: -100px; --m-h: 220px; --m-w: 220px; --m-r: 50%; --accent: #000; }
         .slurpen .mouth { border: 12px solid #0f0; box-shadow: 0 0 100px #0f0; animation: suck 0.2s infinite alternate; }
         .slurpen .pupil { transform: translate(60px, 40px); }
 
+        /* MODUS: SUPER-BLIJ */
         .super-blij { --bg: #0070f3; --accent: #fff; --glow: rgba(255,255,255,0.8); --m-h: 180px; --m-w: 520px; --m-r: 20px 20px 220px 220px; }
         .super-blij .pupil { background: #0044ff; }
         .super-blij .eyebrow { transform: translateY(-60px); }
 
-        @keyframes suck { from { transform: translate(180px, 20px) scale(0.95); } to { transform: translate(180px, 20px) scale(1.05); } }
+        @keyframes suck { from { transform: translate(200px, -100px) scale(0.95); } to { transform: translate(200px, -100px) scale(1.05); } }
         .blink .eye { transform: scaleY(0.05); }
-        #overlay { position: fixed; inset: 0; background: #000; color: #f00; display: flex; justify-content: center; align-items: center; z-index: 1000; cursor: pointer; font-size: 30px; font-weight: bold; font-family: monospace; }
+        #overlay { position: fixed; inset: 0; background: #000; color: #0f0; display: flex; justify-content: center; align-items: center; z-index: 1000; cursor: pointer; font-size: 30px; font-weight: bold; font-family: monospace; }
     </style>
 </head>
 <body class="angry">
 
-    <div id="overlay" onclick="startApp()">[ SYSTEEM STARTEN ]</div>
+    <div id="overlay" onclick="startApp()">[ SYSTEEM BOOTEN ]</div>
     <canvas id="particle-canvas"></canvas>
 
     <div id="face-wrapper">
@@ -76,11 +86,12 @@
         class EnergyParticle {
             constructor() { this.reset(); }
             reset() {
-                this.x = canvas.width + (Math.random() * 400);
-                this.y = canvas.height + (Math.random() * 400);
-                this.size = Math.random() * 12 + 4;
+                // Verschijnen buiten beeld rechtsonder
+                this.x = canvas.width + (Math.random() * 500);
+                this.y = canvas.height + (Math.random() * 500);
+                this.size = Math.random() * 15 + 5;
                 this.maxSize = this.size;
-                this.speed = Math.random() * 0.07 + 0.03;
+                this.speed = Math.random() * 0.08 + 0.04; 
                 this.color = `hsla(${Math.random() * 40 + 100}, 100%, 60%, ${Math.random() * 0.5 + 0.5})`;
             }
             update() {
@@ -88,24 +99,28 @@
                 const mPos = document.getElementById('mouth').getBoundingClientRect();
                 const tX = mPos.left + mPos.width / 2;
                 const tY = mPos.top + mPos.height / 2;
+
                 this.x += (tX - this.x) * this.speed;
                 this.y += (tY - this.y) * this.speed;
+
+                // Eet-effect: krimpen naarmate ze de mond raken
                 let d = Math.hypot(tX - this.x, tY - this.y);
-                if (d < 200) this.size = (d / 200) * this.maxSize;
-                if (d < 15) this.reset();
+                if (d < 250) this.size = (d / 250) * this.maxSize;
+                if (d < 10) this.reset();
             }
             draw() {
-                if (!isSucking || this.size < 0.1) return;
+                if (!isSucking || this.size < 0.5) return;
                 ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fillStyle = this.color; ctx.shadowBlur = 15; ctx.shadowColor = this.color; ctx.fill();
+                ctx.fillStyle = this.color; ctx.shadowBlur = 20; ctx.shadowColor = this.color; ctx.fill();
             }
         }
 
-        for(let i=0; i<300; i++) particles.push(new EnergyParticle());
+        for(let i=0; i<350; i++) particles.push(new EnergyParticle());
 
         function animate() {
             if (isSucking) {
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.25)'; // PUUR ZWART, geen groene waas
+                // BELANGRIJK: Gebruik puur zwart voor de trails, zo voorkom je de groene mist
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.2)'; 
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 particles.forEach(p => { p.update(); p.draw(); });
             } else {
@@ -121,6 +136,7 @@
                 const emo = snap.val() || 'angry';
                 document.body.className = emo;
                 isSucking = (emo === 'slurpen');
+                document.getElementById('mouth').style.height = "";
             });
             db.ref('tablet_speech').on('value', snap => {
                 const data = snap.val();
@@ -144,6 +160,7 @@
             synth.speak(utter);
         }
 
+        // Pupillen bewegen
         setInterval(() => {
             if (!isSucking) {
                 const x = (Math.random()*40 - 20) + 80; const y = (Math.random()*40 - 20) + 80;
