@@ -30,19 +30,25 @@
     </div>
 
     <script>
+        // De nieuwe configuratie voor scouting-3886b
         const firebaseConfig = {
-            apiKey: "AIzaSyAGvUwRjfQQ0QSh2S4n6mGf8k7sZlBggEs",
-            authDomain: "tradingpost-57b20.firebaseapp.com",
-            databaseURL: "https://tradingpost-57b20-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "tradingpost-57b20",
-            storageBucket: "tradingpost-57b20.firebasestorage.app",
-            messagingSenderId: "358205969306",
-            appId: "1:358205969306:web:3262822209994843fca023"
+            apiKey: "AIzaSyDk5QfCGtERCKw6m3fg5FlzEDEVoBU4SU0",
+            authDomain: "scouting-3886b.firebaseapp.com",
+            databaseURL: "https://scouting-3886b-default-rtdb.europe-west1.firebasedatabase.app", // Let op: check deze URL in Firebase Console
+            projectId: "scouting-3886b",
+            storageBucket: "scouting-3886b.firebasestorage.app",
+            messagingSenderId: "512534815557",
+            appId: "1:512534815557:web:6d852b4fb27804813e942c"
         };
+
+        // Initialiseer Firebase
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        function setEmo(e) { db.ref('tablet_emotion').set(e); }
+        function setEmo(e) { 
+            db.ref('tablet_emotion').set(e); 
+        }
+
         function say() {
             const v = document.getElementById('t').value;
             if(v) {
