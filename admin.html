@@ -30,25 +30,19 @@
     </div>
 
     <script>
-        // De nieuwe configuratie voor scouting-3886b
         const firebaseConfig = {
             apiKey: "AIzaSyDk5QfCGtERCKw6m3fg5FlzEDEVoBU4SU0",
             authDomain: "scouting-3886b.firebaseapp.com",
-            databaseURL: "https://scouting-3886b-default-rtdb.europe-west1.firebasedatabase.app", // Let op: check deze URL in Firebase Console
+            databaseURL: "https://scouting-3886b-default-rtdb.firebaseio.com",
             projectId: "scouting-3886b",
             storageBucket: "scouting-3886b.firebasestorage.app",
             messagingSenderId: "512534815557",
             appId: "1:512534815557:web:6d852b4fb27804813e942c"
         };
-
-        // Initialiseer Firebase
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        function setEmo(e) { 
-            db.ref('tablet_emotion').set(e); 
-        }
-
+        function setEmo(e) { db.ref('tablet_emotion').set(e); }
         function say() {
             const v = document.getElementById('t').value;
             if(v) {
