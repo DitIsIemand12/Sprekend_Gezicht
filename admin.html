@@ -3,63 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>iPad Admin - Dark Mode</title>
+    <title>Master Control - iPad</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
-        body { 
-            font-family: -apple-system, sans-serif; 
-            background: #121212; 
-            color: #e0e0e0; 
-            margin: 0; padding: 20px;
-            display: flex; flex-direction: column; align-items: center;
-        }
-        .card { 
-            background: #1e1e1e; 
-            width: 100%; max-width: 450px; 
-            padding: 25px; border-radius: 20px; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5); 
-            margin-bottom: 20px;
-            border: 1px solid #333;
-        }
-        h3 { margin-top: 0; color: #888; text-transform: uppercase; font-size: 14px; letter-spacing: 1px; }
-        
-        button { 
-            width: 100%; padding: 18px; margin: 10px 0; 
-            border: none; border-radius: 12px; 
-            font-weight: bold; cursor: pointer; 
-            font-size: 16px; transition: all 0.2s;
-            text-transform: uppercase;
-        }
-        button:active { transform: scale(0.96); opacity: 0.8; }
-
-        .btn-angry { background: #330000; color: #ff4444; border: 1px solid #ff4444; }
-        .btn-slurp { background: #003300; color: #00ff00; border: 1px solid #00ff00; box-shadow: 0 0 15px rgba(0,255,0,0.2); }
-        .btn-blij { background: #002244; color: #0088ff; border: 1px solid #0088ff; }
-        .btn-speak { background: #ffffff; color: #000; margin-top: 15px; }
-
-        input { 
-            width: 100%; padding: 18px; 
-            background: #252525; border: 1px solid #444; 
-            border-radius: 12px; color: #fff; font-size: 18px; 
-            box-sizing: border-box; outline: none;
-        }
-        input:focus { border-color: #0088ff; }
+        body { font-family: -apple-system, sans-serif; background: #0c0c0c; color: #fff; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .card { background: #181818; width: 100%; max-width: 450px; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); margin-bottom: 20px; border: 1px solid #333; }
+        h3 { margin-top: 0; color: #666; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; }
+        button { width: 100%; padding: 20px; margin: 10px 0; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 18px; transition: 0.2s; text-transform: uppercase; }
+        .btn-red { background: #330000; color: #ff4444; border: 1px solid #ff4444; }
+        .btn-green { background: #002200; color: #00ff00; border: 1px solid #00ff00; }
+        .btn-blue { background: #001133; color: #0088ff; border: 1px solid #0088ff; }
+        .btn-white { background: #fff; color: #000; margin-top: 15px; }
+        input { width: 100%; padding: 20px; background: #222; border: 1px solid #444; border-radius: 12px; color: #fff; font-size: 18px; box-sizing: border-box; }
     </style>
 </head>
 <body>
 
     <div class="card">
-        <h3>Emotie & Actie</h3>
-        <button class="btn-angry" onclick="setEmo('angry')">Standaard Boos</button>
-        <button class="btn-slurp" onclick="setEmo('slurpen')">Energie Slurpen</button>
-        <button class="btn-blij" onclick="setEmo('super-blij')">Super Blij</button>
+        <h3>Modus selecteren</h3>
+        <button class="btn-red" onclick="setEmo('angry')">Enge Tablet (Boos)</button>
+        <button class="btn-green" onclick="setEmo('slurpen')">Energie Slurpen (Groen)</button>
+        <button class="btn-blue" onclick="setEmo('super-blij')">Buzz Gered (Super Blij)</button>
     </div>
 
     <div class="card">
         <h3>Spreken</h3>
-        <input type="text" id="t" placeholder="Wat moet ik zeggen?" autocomplete="off">
-        <button class="btn-speak" onclick="say()">Verstuur Spraak</button>
+        <input type="text" id="t" placeholder="Typ je tekst hier..." autocomplete="off">
+        <button class="btn-white" onclick="say()">NU SPREKEN</button>
     </div>
 
     <script>
@@ -74,7 +45,6 @@
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-
         function setEmo(e) { db.ref('tablet_emotion').set(e); }
         function say() {
             const v = document.getElementById('t').value;
@@ -83,10 +53,7 @@
                 document.getElementById('t').value = "";
             }
         }
-        // Enter-key ondersteuning
-        document.getElementById('t').addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') say();
-        });
+        document.getElementById('t').addEventListener('keypress', e => { if(e.key === 'Enter') say(); });
     </script>
 </body>
 </html>
