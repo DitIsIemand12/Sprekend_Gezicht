@@ -2,7 +2,7 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <title>iPad Pro - Robot Evolution</title>
+    <title>iPad Pro - The Final Boss</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
@@ -11,15 +11,28 @@
             --m-x: 0px; --m-y: 0px; --m-h: 40px; --m-w: 450px;
         }
 
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg); overflow: hidden; display: flex; justify-content: center; align-items: center; font-family: sans-serif; transition: background 0.5s; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg); overflow: hidden; display: flex; justify-content: center; align-items: center; font-family: sans-serif; transition: background 0.8s; }
         
-        #face-wrapper { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 5; transform: scale(1.2); transition: all 0.5s ease; }
-        #particle-canvas { position: absolute; inset: 0; z-index: 10; pointer-events: none; }
+        /* FACE WRAPPER met verdwijn-animatie */
+        #face-wrapper { 
+            position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; 
+            z-index: 5; transform: scale(1.2) translateY(0); 
+            transition: transform 1s cubic-bezier(0.47, 0, 0.745, 0.715), opacity 0.5s; 
+        }
+
+        /* Verdwijn-stand */
+        .hidden #face-wrapper { transform: scale(1.2) translateY(150vh); opacity: 0; }
 
         .eyes { display: flex; gap: 80px; margin-bottom: 50px; }
         .eye { width: 250px; height: 250px; background: #fff; border-radius: 50%; position: relative; overflow: hidden; box-shadow: 0 0 60px var(--glow); transition: 0.4s; }
         .eyebrow { position: absolute; width: 130%; height: 80px; background: var(--bg); top: -30px; left: -15%; transition: 0.4s; z-index: 2; }
         .pupil { position: absolute; width: 100px; height: 100px; background: #000; border-radius: 50%; top: 75px; left: 75px; transition: 0.1s; }
+
+        /* KRUISJES VOOR DOOD-MODUS */
+        .cross { display: none; position: absolute; width: 100%; height: 100%; top: 0; left: 0; justify-content: center; align-items: center; }
+        .cross::before, .cross::after { content: ''; position: absolute; width: 20px; height: 150px; background: #000; border-radius: 10px; }
+        .cross::before { transform: rotate(45deg); }
+        .cross::after { transform: rotate(-45deg); }
 
         .mouth { 
             width: var(--m-w); height: var(--m-h); background: var(--accent); border-radius: 100px; 
@@ -33,35 +46,48 @@
 
         .slurpen { --bg: #000; --m-x: 200px; --m-y: 80px; --m-h: 250px; --m-w: 250px; --accent: #000; }
         .slurpen .mouth { border: 15px solid #0f0; box-shadow: 0 0 100px #0f0; border-radius: 50%; }
-        .slurpen .pupil { transform: translate(50px, 40px) scale(1.2); }
 
         .super-blij { --bg: #00aaff; --accent: #fff; --glow: rgba(255,255,255,1); --m-h: 200px; --m-w: 550px; }
-        .super-blij .mouth { border-radius: 20px 20px 250px 250px; box-shadow: 0 10px 60px #fff; }
+        .super-blij .mouth { border-radius: 20px 20px 250px 250px; }
         .super-blij .eyebrow { transform: translateY(-90px); }
-        .super-blij .pupil { background: #0044ff; }
 
-        /* Robotisch trillen als hij boos praat */
+        /* DOOD-MODUS */
+        .dead { --bg: #111; --accent: #444; --glow: none; }
+        .dead .pupil { display: none; }
+        .dead .cross { display: flex; }
+        .dead .eye { background: #666; box-shadow: none; }
+        .dead .mouth { height: 10px; width: 300px; opacity: 0.5; }
+
         .robot-vibrate { animation: vibrate 0.1s infinite; }
-        @keyframes vibrate {
-            0% { transform: scale(1.2) translate(2px, 2px); }
-            50% { transform: scale(1.2) translate(-2px, -2px); }
-            100% { transform: scale(1.2) translate(2px, -2px); }
-        }
-
-        @keyframes suck { from { transform: translate(200px, 80px) scale(0.95); } to { transform: translate(200px, 80px) scale(1.05); } }
+        @keyframes vibrate { 0% { transform: scale(1.2) translate(2px, 2px); } 50% { transform: scale(1.2) translate(-2px, -2px); } 100% { transform: scale(1.2) translate(2px, -2px); } }
         .slurpen .mouth { animation: suck 0.2s infinite alternate; }
+        @keyframes suck { from { transform: translate(200px, 80px) scale(0.95); } to { transform: translate(200px, 80px) scale(1.05); } }
         .blink .eye { transform: scaleY(0.05); }
         #overlay { position: fixed; inset: 0; background: #000; color: #0f0; display: flex; justify-content: center; align-items: center; z-index: 1000; cursor: pointer; font-size: 30px; font-weight: bold; font-family: monospace; }
+        #particle-canvas { position: absolute; inset: 0; z-index: 10; pointer-events: none; }
     </style>
 </head>
 <body class="angry">
 
     <div id="overlay" onclick="startApp()">[ SYSTEEM BOOTEN ]</div>
     <canvas id="particle-canvas"></canvas>
+    
     <div id="face-wrapper">
-        <div class="eyes"><div class="eye"><div class="eyebrow l"></div><div class="pupil" id="p1"></div></div><div class="eye"><div class="eyebrow r"></div><div class="pupil" id="p2"></div></div></div>
+        <div class="eyes">
+            <div class="eye">
+                <div class="eyebrow l"></div>
+                <div class="pupil" id="p1"></div>
+                <div class="cross"></div>
+            </div>
+            <div class="eye">
+                <div class="eyebrow r"></div>
+                <div class="pupil" id="p2"></div>
+                <div class="cross"></div>
+            </div>
+        </div>
         <div class="mouth" id="mouth"></div>
     </div>
+    
     <audio id="slurpSound" loop src="slurp.mp3"></audio>
 
     <script>
@@ -86,7 +112,6 @@
         function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
         window.onresize = resize; resize();
 
-        // Particle systeem voor deeltjes
         class EnergyWisp {
             constructor() { this.reset(); }
             reset() { this.x = canvas.width + Math.random() * 500; this.y = canvas.height + Math.random() * 500; this.size = Math.random() * 8 + 4; this.history = []; this.speed = Math.random() * 0.1 + 0.05; this.color = Math.random() > 0.2 ? '#0f0' : '#fff'; }
@@ -106,7 +131,7 @@
 
         function animate() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            if (isSucking) {
+            if (isSucking && !document.body.classList.contains('hidden')) {
                 const mPos = document.getElementById('mouth').getBoundingClientRect();
                 const tx = mPos.left + mPos.width / 2; const ty = mPos.top + mPos.height / 2;
                 particles.forEach(p => { p.update(tx, ty); p.draw(); });
@@ -121,7 +146,13 @@
                 const emo = snap.val() || 'angry';
                 document.body.className = emo;
                 isSucking = (emo === 'slurpen');
-                if (isSucking) slurpAudio.play(); else { slurpAudio.pause(); slurpAudio.currentTime = 0; }
+                
+                // Audio beheer
+                if (isSucking && !document.body.classList.contains('hidden')) {
+                    slurpAudio.play();
+                } else {
+                    slurpAudio.pause(); slurpAudio.currentTime = 0;
+                }
                 document.getElementById('mouth').style.height = "";
             });
             db.ref('tablet_speech').on('value', snap => {
@@ -130,43 +161,28 @@
         }
 
         function speak(text) {
+            if (document.body.classList.contains('dead') || document.body.classList.contains('hidden')) return;
             const synth = window.speechSynthesis;
             const utter = new SpeechSynthesisUtterance(text);
             utter.lang = 'nl-NL';
-
             const currentEmo = document.body.className;
             
-            // ROBOTISCHE STEM INSTELLINGEN
-            if (currentEmo === 'super-blij') {
-                utter.pitch = 2.0;  // Maximaal hoog (Hyper-robot)
-                utter.rate = 1.4;   // Heel snel
-            } else {
-                utter.pitch = 0.1;  // Maximaal laag (Monster-robot)
-                utter.rate = 0.6;   // Heel traag
-                face.classList.add('robot-vibrate'); // Trillen bij boze stem
-            }
+            if (currentEmo === 'super-blij') { utter.pitch = 2.0; utter.rate = 1.4; } 
+            else { utter.pitch = 0.1; utter.rate = 0.6; face.classList.add('robot-vibrate'); }
 
             utter.onboundary = (event) => {
                 if (document.body.className === 'slurpen') return;
                 const m = document.getElementById('mouth');
                 let baseH = document.body.className === 'super-blij' ? 200 : 40;
-                // Extreme mondbeweging
                 m.style.height = (baseH + Math.random() * 120) + "px";
                 setTimeout(() => m.style.height = baseH + "px", 70);
             };
-
-            utter.onend = () => { 
-                document.getElementById('mouth').style.height = ""; 
-                face.classList.remove('robot-vibrate');
-            };
-            
-            synth.cancel(); // Stop huidige spraak voor nieuwe
-            synth.speak(utter);
+            utter.onend = () => { document.getElementById('mouth').style.height = ""; face.classList.remove('robot-vibrate'); };
+            synth.cancel(); synth.speak(utter);
         }
 
-        // Pupillen & Knipperen
-        setInterval(() => { if (!isSucking) { const x = (Math.random()*40 - 20) + 75; const y = (Math.random()*40 - 20) + 75; document.getElementById('p1').style.left = x + "px"; document.getElementById('p1').style.top = y + "px"; document.getElementById('p2').style.left = x + "px"; document.getElementById('p2').style.top = y + "px"; } }, 2000);
-        setInterval(() => { document.body.classList.add('blink'); setTimeout(() => document.body.classList.remove('blink'), 150); }, 4500);
+        setInterval(() => { if (!isSucking && !document.body.classList.contains('dead')) { const x = (Math.random()*40 - 20) + 75; const y = (Math.random()*40 - 20) + 75; document.getElementById('p1').style.left = x + "px"; document.getElementById('p1').style.top = y + "px"; document.getElementById('p2').style.left = x + "px"; document.getElementById('p2').style.top = y + "px"; } }, 2000);
+        setInterval(() => { if (!document.body.classList.contains('dead')) { document.body.classList.add('blink'); setTimeout(() => document.body.classList.remove('blink'), 150); } }, 4500);
     </script>
 </body>
 </html>
