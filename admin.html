@@ -7,30 +7,28 @@
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
-        body { font-family: system-ui, sans-serif; background: #eee; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        .card { background: #fff; width: 100%; max-width: 400px; padding: 20px; border-radius: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        button { width: 100%; padding: 15px; margin: 10px 0; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 16px; }
-        button:active { transform: scale(0.98); }
+        body { font-family: sans-serif; background: #eee; padding: 20px; text-align: center; }
+        .card { background: #fff; padding: 20px; border-radius: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); margin-bottom: 20px; max-width: 400px; margin-left: auto; margin-right: auto; }
+        button { width: 100%; padding: 18px; margin: 10px 0; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 16px; }
         .btn-red { background: #ff3b30; color: #fff; }
         .btn-blue { background: #007aff; color: #fff; }
-        .btn-green { background: #34c759; color: #fff; }
-        .btn-black { background: #000; color: #fff; border: 2px solid red; }
+        .btn-black { background: #000; color: #fff; border: 2px solid #0f0; }
         input { width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 10px; font-size: 18px; box-sizing: border-box; }
     </style>
 </head>
 <body>
 
     <div class="card">
-        <h3>Gezicht Toestand</h3>
-        <button class="btn-red" onclick="setEmo('angry')">BOOS (Midden)</button>
-        <button class="btn-black" onclick="setEmo('slurpen')">START SLURPEN (Energie Effect)</button>
+        <h3>Gezicht Besturing</h3>
+        <button class="btn-red" onclick="setEmo('angry')">STANDAARD (Boos)</button>
+        <button class="btn-black" onclick="setEmo('slurpen')">START SLURPEN (Richting hoek)</button>
         <button class="btn-blue" onclick="setEmo('super-blij')">SUPER BLIJ (Overwinning)</button>
     </div>
 
     <div class="card">
-        <h3>Live Spraak</h3>
+        <h3>Spreken</h3>
         <input type="text" id="t" placeholder="Typ je tekst...">
-        <button class="btn-green" onclick="say()">SPREEK NU</button>
+        <button style="background: #34c759; color: white; margin-top: 10px;" onclick="say()">STUUR NAAR TV</button>
     </div>
 
     <script>
@@ -45,7 +43,6 @@
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-
         function setEmo(e) { db.ref('tablet_emotion').set(e); }
         function say() {
             const v = document.getElementById('t').value;
