@@ -2,7 +2,7 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <title>Master Tablet - Ultimate Man Edition</title>
+    <title>Master Tablet - Ultimate Edition</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
@@ -55,13 +55,11 @@
         .dead .eye { background: #666; box-shadow: none; }
         .dead .mouth { height: 10px; width: 300px; opacity: 0.5; }
 
-        /* Animatie voor trillen bij boos */
         .angry.robot-vibrate #face-wrapper { animation: vibrate 0.1s infinite; }
         @keyframes vibrate { 0% { transform: scale(1.2) translate(2px, 2px); } 50% { transform: scale(1.2) translate(-2px, -2px); } 100% { transform: scale(1.2) translate(2px, -2px); } }
         
         @keyframes suck { from { transform: translate(200px, 80px) scale(0.95); } to { transform: translate(200px, 80px) scale(1.05); } }
         
-        /* OOG KNIPPER EFFECT - Alleen voor de ogen */
         .eye-blink { transform: scaleY(0.05) !important; }
 
         #overlay { position: fixed; inset: 0; background: #000; color: #0f0; display: flex; justify-content: center; align-items: center; z-index: 1000; cursor: pointer; font-size: 30px; font-weight: bold; font-family: monospace; }
@@ -132,7 +130,7 @@
         }
         updateMouthPhysics();
 
-        // --- STEM SELECTIE (MAN NL) ---
+        // --- STEM SELECTIE ---
         let bestDutchVoice = null;
         function loadVoices() {
             const voices = window.speechSynthesis.getVoices();
@@ -141,15 +139,14 @@
             if (dutchVoices.length > 0) {
                 dutchVoices.sort((a, b) => {
                     let sA = 0; let sB = 0;
-                    // Geef Fenna nu ook punten als je een jonge stem wilt
-                    if (a.name.includes('Fenna')) sA += 60; // Fenna is de 'kinderlijke' optie
+                    if (a.name.includes('Fenna')) sA += 60; 
                     if (b.name.includes('Fenna')) sB += 60;
                     if (a.name.includes('Maarten')) sA += 50; 
                     if (b.name.includes('Maarten')) sB += 50;
                     return sB - sA;
                 });
                 bestDutchVoice = dutchVoices[0];
-                console.log("[STEM SYSTEEM] Actieve stem: " + bestDutchVoice.name);
+                console.log("%c[STEM SYSTEEM] Actieve stem: " + bestDutchVoice.name, "color: #00ff00; font-weight: bold;");
             }
         }
         window.speechSynthesis.onvoiceschanged = loadVoices;
@@ -187,7 +184,6 @@
         }
         animate();
 
-        // --- APP START & FIREBASE ---
         function startApp() {
             if (appStarted) return; appStarted = true;
             document.getElementById('overlay').style.display = 'none';
@@ -213,22 +209,35 @@
             window.speechSynthesis.cancel();
             const utter = new SpeechSynthesisUtterance(text);
             utter.lang = 'nl-NL';
-            utter.voice = bestDutchVoice;
+            if (bestDutchVoice) utter.voice = bestDutchVoice;
             
-            // KINDER-TUNING:
-            // Als de geselecteerde stem Fenna is, maken we haar iets vlotter en hoger
-            if (bestDutchVoice.name.includes('Fenna')) {
-                utter.pitch = 1.3; // Hogere stem = kinderlijker
-                utter.rate = 1.1;  // Kinderen praten vaak iets sneller/enthousiaster
+            // Stem tuning
+            if (bestDutchVoice && bestDutchVoice.name.includes('Fenna')) {
+                utter.pitch = 1.3; // Kinderstem
+                utter.rate = 1.1;
             } else {
-                // Instellingen voor Maarten (zoals ze waren)
                 if (emo === 'super-blij') { utter.pitch = 1.1; utter.rate = 1.1; } 
-                else if (emo === 'angry') { utter.pitch = 0.8; utter.rate = 0.85; }
+                else if (emo === 'angry') { utter.pitch = 0.8; utter.rate = 0.85; document.body.classList.add('robot-vibrate'); }
+                else { utter.pitch = 1.0; utter.rate = 1.0; }
             }
-            // ... rest van je sync code ...
 
-        // --- LOSSE OGEN ANIMATIE (GEEN MOND MEER) ---
-        // Ogen laten bewegen
+            utter.onstart = () => { isSpeaking = true; };
+            utter.onboundary = (event) => {
+                if (event.name === 'word') {
+                    const isHappy = document.body.classList.contains('super-blij');
+                    const baseH = isHappy ? 200 : 40;
+                    targetMouthH = baseH + (Math.random() * 100 + 50);
+                    setTimeout(() => { if(isSpeaking) targetMouthH = baseH; }, 80 / utter.rate);
+                }
+            };
+            utter.onend = () => { 
+                isSpeaking = false; 
+                document.body.classList.remove('robot-vibrate'); 
+            };
+            window.speechSynthesis.speak(utter);
+        }
+
+        // --- OGEN ---
         setInterval(() => { 
             if (!isSucking && !document.body.classList.contains('dead')) { 
                 const x = (Math.random()*40 - 20) + 75; 
@@ -240,7 +249,6 @@
             } 
         }, 2000);
 
-        // Ogen knipperen (Targets nu specifiek de oog-id's, NIET de body)
         setInterval(() => { 
             if (!document.body.classList.contains('dead')) { 
                 const le = document.getElementById('left-eye');
