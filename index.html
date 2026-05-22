@@ -88,7 +88,7 @@
     
     <audio id="slurpSound" loop src="slurp.mp3"></audio>
 
-   <script>
+  <script>
         const firebaseConfig = {
           apiKey: "AIzaSyDk5QfCGtERCKw6m3fg5FlzEDEVoBU4SU0",
           authDomain: "scouting-3886b.firebaseapp.com",
@@ -107,23 +107,31 @@
         const faceWrapper = document.getElementById('face-wrapper');
         let isSucking = false;
         
-        // --- NIEUW: Stemmen inladen en de beste kiezen ---
+        // --- NIEUW: Geoptimaliseerd voor Windows (Edge / Chrome) ---
         let bestDutchVoice = null;
         function loadVoices() {
             const voices = window.speechSynthesis.getVoices();
-            // Zoek naar Nederlandse stemmen
+            // Zoek naar alle Nederlandse stemmen
             const dutchVoices = voices.filter(v => v.lang.includes('nl-NL'));
             
             if (dutchVoices.length > 0) {
-                // Probeer eerst een Google of Premium (iOS) stem te vinden (die klinken menselijker)
-                bestDutchVoice = dutchVoices.find(v => v.name.includes('Google') || v.name.includes('Premium')) 
-                              || dutchVoices[0]; // Pak anders de standaard NL stem
+                // 1. Zoek naar Microsoft Edge "Online" (Neural AI) stemmen (Beste kwaliteit)
+                let premiumVoice = dutchVoices.find(v => v.name.includes('Online (Natural)'));
+                
+                // 2. Zoek naar Google Chrome stemmen
+                if (!premiumVoice) {
+                    premiumVoice = dutchVoices.find(v => v.name.includes('Google'));
+                }
+                
+                // 3. Pak de standaard stem als we geen premium kunnen vinden
+                bestDutchVoice = premiumVoice || dutchVoices[0];
             }
         }
-        // Browsers laden stemmen soms met vertraging in, dit vangt dat op:
+        
+        // Zorg dat de stemmen goed inladen (Browsers doen dit asynchroon)
         window.speechSynthesis.onvoiceschanged = loadVoices;
         loadVoices(); 
-        // --------------------------------------------------
+        // -----------------------------------------------------------
 
         function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
         window.onresize = resize; resize();
@@ -178,24 +186,21 @@
             const utter = new SpeechSynthesisUtterance(text);
             utter.lang = 'nl-NL';
             
-            // Stel de beste stem in als we die gevonden hebben
+            // Gebruik de premium Windows/Chrome stem
             if (bestDutchVoice) {
                 utter.voice = bestDutchVoice;
             }
             
-            // --- AANGEPASTE NATUURLIJKERE INSTELLINGEN ---
+            // Natuurlijkere pitch (toonhoogte) en rate (snelheid)
             if (emo === 'super-blij') { 
-                // Net iets hoger en enthousiaster, maar niet extreem
-                utter.pitch = 1.2; 
-                utter.rate = 1.1; 
+                utter.pitch = 1.1;  // Iets hoger, klinkt vrolijker
+                utter.rate = 1.1;   // Iets sneller
                 document.body.classList.remove('robot-vibrate'); 
             } else { 
-                // Net iets zwaarder en langzamer voor 'enge/boze' modus
-                utter.pitch = 0.7; 
-                utter.rate = 0.9; 
+                utter.pitch = 0.8;  // Iets lager voor de stoere/enge modus
+                utter.rate = 0.95;  // Net iets langzamer
                 document.body.classList.add('robot-vibrate'); 
             }
-            // ---------------------------------------------
 
             utter.onboundary = (event) => {
                 if (document.body.className === 'slurpen') return;
