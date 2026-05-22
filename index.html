@@ -105,25 +105,47 @@
         const ctx = canvas.getContext('2d');
         const slurpAudio = document.getElementById('slurpSound');
         const faceWrapper = document.getElementById('face-wrapper');
-        let isSucking = false;
         
-        // --- NIEUW: Stemmen inladen en de beste kiezen ---
+        let isSucking = false;
+        let appStarted = false;
+        
+        // --- NIEUW: Agressieve manier om de meest vloeiende stem te forceren ---
         let bestDutchVoice = null;
+        
         function loadVoices() {
             const voices = window.speechSynthesis.getVoices();
-            // Zoek naar Nederlandse stemmen
-            const dutchVoices = voices.filter(v => v.lang.includes('nl-NL'));
+            if (voices.length === 0) return; // Nog niet geladen, breek af
+
+            // Zoek alle Nederlandse stemmen
+            let dutchVoices = voices.filter(v => v.lang.includes('nl'));
             
             if (dutchVoices.length > 0) {
-                // Probeer eerst een Google of Premium (iOS) stem te vinden (die klinken menselijker)
-                bestDutchVoice = dutchVoices.find(v => v.name.includes('Google') || v.name.includes('Premium')) 
-                              || dutchVoices[0]; // Pak anders de standaard NL stem
+                // We geven de stemmen een 'score'. AI/Natural stemmen krijgen de hoogste score!
+                dutchVoices.sort((a, b) => {
+                    let scoreA = 0; let scoreB = 0;
+                    
+                    // Edge Natural / Online stemmen (Vloeiendste optie)
+                    if (a.name.includes('Natural') || a.name.includes('Online')) scoreA += 10;
+                    // Google stemmen (Goede 2e optie)
+                    if (a.name.includes('Google')) scoreA += 5;
+                    
+                    if (b.name.includes('Natural') || b.name.includes('Online')) scoreB += 10;
+                    if (b.name.includes('Google')) scoreB += 5;
+                    
+                    return scoreB - scoreA; // Sorteer hoogste score bovenaan
+                });
+                
+                bestDutchVoice = dutchVoices[0]; // Pak de absolute winnaar
+                console.log("Systeem gebruikt nu deze stem: ", bestDutchVoice.name); 
             }
         }
-        // Browsers laden stemmen soms met vertraging in, dit vangt dat op:
+        
+        // Windows/Browsers laden stemmen soms pas seconden later in, dit forceert het:
         window.speechSynthesis.onvoiceschanged = loadVoices;
         loadVoices(); 
-        // --------------------------------------------------
+        setTimeout(loadVoices, 500);
+        setTimeout(loadVoices, 2000);
+        // ------------------------------------------------------------------------
 
         function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
         window.onresize = resize; resize();
@@ -156,8 +178,15 @@
         }
         animate();
 
+        let initialLoad = true;
+        let lastSpokenTime = 0;
+
         function startApp() {
+            if (appStarted) return; 
+            appStarted = true;
+            
             document.getElementById('overlay').style.display = 'none';
+            
             db.ref('tablet_emotion').on('value', snap => {
                 const emo = snap.val() || 'angry';
                 document.body.className = emo;
@@ -165,8 +194,21 @@
                 if (isSucking && !document.body.classList.contains('hidden')) slurpAudio.play(); else { slurpAudio.pause(); slurpAudio.currentTime = 0; }
                 document.getElementById('mouth').style.height = "";
             });
+            
             db.ref('tablet_speech').on('value', snap => {
-                const data = snap.val(); if(data) speak(data.text);
+                const data = snap.val(); 
+                if (!data) return;
+
+                if (initialLoad) {
+                    initialLoad = false;
+                    lastSpokenTime = data.time;
+                    return; 
+                }
+
+                if (data.time !== lastSpokenTime) {
+                    lastSpokenTime = data.time;
+                    speak(data.text);
+                }
             });
         }
 
@@ -174,28 +216,24 @@
             const emo = document.body.className;
             if (emo === 'dead' || emo === 'hidden') return;
             
-            const synth = window.speechSynthesis;
+            window.speechSynthesis.cancel(); 
+            
             const utter = new SpeechSynthesisUtterance(text);
             utter.lang = 'nl-NL';
             
-            // Stel de beste stem in als we die gevonden hebben
+            // Zet de geselecteerde top-stem erin
             if (bestDutchVoice) {
                 utter.voice = bestDutchVoice;
             }
             
-            // --- AANGEPASTE NATUURLIJKERE INSTELLINGEN ---
+            utter.pitch = 1.0; 
+            utter.rate = 1.0; 
+
             if (emo === 'super-blij') { 
-                // Net iets hoger en enthousiaster, maar niet extreem
-                utter.pitch = 1.2; 
-                utter.rate = 1.1; 
                 document.body.classList.remove('robot-vibrate'); 
             } else { 
-                // Net iets zwaarder en langzamer voor 'enge/boze' modus
-                utter.pitch = 0.7; 
-                utter.rate = 0.9; 
                 document.body.classList.add('robot-vibrate'); 
             }
-            // ---------------------------------------------
 
             utter.onboundary = (event) => {
                 if (document.body.className === 'slurpen') return;
@@ -214,8 +252,7 @@
                 document.body.classList.remove('robot-vibrate'); 
             };
             
-            synth.cancel(); 
-            synth.speak(utter);
+            window.speechSynthesis.speak(utter);
         }
 
         setInterval(() => { if (!isSucking && !document.body.classList.contains('dead')) { const x = (Math.random()*40 - 20) + 75; const y = (Math.random()*40 - 20) + 75; document.getElementById('p1').style.left = x + "px"; document.getElementById('p1').style.top = y + "px"; document.getElementById('p2').style.left = x + "px"; document.getElementById('p2').style.top = y + "px"; } }, 2000);
