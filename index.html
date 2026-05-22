@@ -34,7 +34,8 @@
         .mouth { 
             width: var(--m-w); height: var(--m-h); background: var(--accent); border-radius: 100px; 
             box-shadow: 0 0 50px var(--glow); transform: translate(var(--m-x), var(--m-y)); 
-            transition: width 0.4s, height 0.05s, transform 0.6s, border-radius 0.4s;
+            /* Iets snellere transitie voor vlottere mondbeweging */
+            transition: width 0.4s, height 0.04s ease-out, transform 0.6s, border-radius 0.4s;
         }
 
         /* MODI */
@@ -55,7 +56,6 @@
         .dead .eye { background: #666; box-shadow: none; }
         .dead .mouth { height: 10px; width: 300px; opacity: 0.5; }
 
-        /* Alleen trillen als boos, niet bij superblij */
         .angry.robot-vibrate #face-wrapper { animation: vibrate 0.1s infinite; }
         @keyframes vibrate { 0% { transform: scale(1.2) translate(2px, 2px); } 50% { transform: scale(1.2) translate(-2px, -2px); } 100% { transform: scale(1.2) translate(2px, -2px); } }
         
@@ -88,7 +88,7 @@
     
     <audio id="slurpSound" loop src="slurp.mp3"></audio>
 
- <script>
+    <script>
         const firebaseConfig = {
           apiKey: "AIzaSyDk5QfCGtERCKw6m3fg5FlzEDEVoBU4SU0",
           authDomain: "scouting-3886b.firebaseapp.com",
@@ -104,69 +104,34 @@
         const canvas = document.getElementById('particle-canvas');
         const ctx = canvas.getContext('2d');
         const slurpAudio = document.getElementById('slurpSound');
-        const faceWrapper = document.getElementById('face-wrapper');
+        const mouthElement = document.getElementById('mouth');
         
         let isSucking = false;
         let appStarted = false;
+        let mouthInterval = null; // Voor de animatie-loop van de mond
         
-        // --- NIEUW: Filter expliciet op NEDERLANDSE MAN (Geen BE) ---
+        // --- Stemmen selectie ---
         let bestDutchVoice = null;
-        
         function loadVoices() {
             const voices = window.speechSynthesis.getVoices();
-            if (voices.length === 0) return;
-
-            // Filter op 'nl', maar sluit 'be' (België) en 'BE' streng uit!
-            let dutchVoices = voices.filter(v => {
-                const lang = v.lang.toLowerCase();
-                return lang.includes('nl') && !lang.includes('be');
-            });
-            
+            let dutchVoices = voices.filter(v => v.lang.includes('nl') && !v.lang.toLowerCase().includes('be'));
             if (dutchVoices.length > 0) {
-                // We geven de stemmen punten. Maarten is de Edge AI Man, Frank is de Windows Offline Man.
                 dutchVoices.sort((a, b) => {
-                    let scoreA = 0; let scoreB = 0;
-                    const nameA = a.name.toLowerCase();
-                    const nameB = b.name.toLowerCase();
-                    
-                    // Geef gigantische bonuspunten aan de Nederlandse mannen
-                    if (nameA.includes('maarten')) scoreA += 50;
-                    if (nameB.includes('maarten')) scoreB += 50;
-                    
-                    if (nameA.includes('frank')) scoreA += 30;
-                    if (nameB.includes('frank')) scoreB += 30;
-
-                    if (nameA.includes('xander')) scoreA += 30; // Voor als je ooit toch weer een iPad/Mac pakt
-                    if (nameB.includes('xander')) scoreB += 30;
-                    
-                    // Kwaliteitsbonus (Vloeiende AI stem)
-                    if (nameA.includes('natural') || nameA.includes('online')) scoreA += 10;
-                    if (nameB.includes('natural') || nameB.includes('online')) scoreB += 10;
-                    
-                    if (nameA.includes('google')) scoreA += 5;
-                    if (nameB.includes('google')) scoreB += 5;
-                    
-                    // Strafpunten voor bekende vrouwenstemmen (zodat hij die negeert)
-                    if (nameA.includes('colette') || nameA.includes('fenna')) scoreA -= 20;
-                    if (nameB.includes('colette') || nameB.includes('fenna')) scoreB -= 20;
-                    
-                    return scoreB - scoreA; // Sorteer hoogste score bovenaan
+                    let sA = 0; let sB = 0;
+                    if (a.name.includes('Maarten')) sA += 50; if (b.name.includes('Maarten')) sB += 50;
+                    if (a.name.includes('Natural')) sA += 10; if (b.name.includes('Natural')) sB += 10;
+                    return sB - sA;
                 });
-                
-                bestDutchVoice = dutchVoices[0]; // Pak de absolute winnaar
-                console.log("Systeem gebruikt nu deze stem: ", bestDutchVoice.name); 
+                bestDutchVoice = dutchVoices[0];
             }
         }
-        
         window.speechSynthesis.onvoiceschanged = loadVoices;
         loadVoices(); 
-        setTimeout(loadVoices, 500);
-        setTimeout(loadVoices, 2000);
-        // ------------------------------------------------------------------------
 
         function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
         window.onresize = resize; resize();
 
+        // --- Energie particles ---
         class EnergyWisp {
             constructor() { this.reset(); }
             reset() { this.x = canvas.width + Math.random() * 500; this.y = canvas.height + Math.random() * 500; this.size = Math.random() * 8 + 4; this.history = []; this.speed = Math.random() * 0.1 + 0.05; this.color = Math.random() > 0.2 ? '#0f0' : '#fff'; }
@@ -187,7 +152,7 @@
         function animate() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             if (isSucking && !document.body.classList.contains('hidden')) {
-                const mPos = document.getElementById('mouth').getBoundingClientRect();
+                const mPos = mouthElement.getBoundingClientRect();
                 const tx = mPos.left + mPos.width / 2; const ty = mPos.top + mPos.height / 2;
                 particles.forEach(p => { p.update(tx, ty); p.draw(); });
             }
@@ -195,13 +160,13 @@
         }
         animate();
 
+        // --- Firebase & App Start ---
         let initialLoad = true;
         let lastSpokenTime = 0;
 
         function startApp() {
             if (appStarted) return; 
             appStarted = true;
-            
             document.getElementById('overlay').style.display = 'none';
             
             db.ref('tablet_emotion').on('value', snap => {
@@ -209,19 +174,13 @@
                 document.body.className = emo;
                 isSucking = (emo === 'slurpen');
                 if (isSucking && !document.body.classList.contains('hidden')) slurpAudio.play(); else { slurpAudio.pause(); slurpAudio.currentTime = 0; }
-                document.getElementById('mouth').style.height = "";
+                resetMouth();
             });
             
             db.ref('tablet_speech').on('value', snap => {
                 const data = snap.val(); 
                 if (!data) return;
-
-                if (initialLoad) {
-                    initialLoad = false;
-                    lastSpokenTime = data.time;
-                    return; 
-                }
-
+                if (initialLoad) { initialLoad = false; lastSpokenTime = data.time; return; }
                 if (data.time !== lastSpokenTime) {
                     lastSpokenTime = data.time;
                     speak(data.text);
@@ -229,63 +188,88 @@
             });
         }
 
+        // --- DE MOND MOTOR ---
+        function resetMouth() {
+            const emo = document.body.className;
+            if (emo === 'super-blij') mouthElement.style.height = "200px";
+            else if (emo === 'dead') mouthElement.style.height = "10px";
+            else mouthElement.style.height = "40px";
+        }
+
+        function animateMouthTalk() {
+            const emo = document.body.className;
+            if (emo === 'slurpen' || emo === 'dead' || emo === 'hidden') return;
+
+            let isHappy = (emo === 'super-blij');
+            let baseH = isHappy ? 200 : 40;
+            let maxOpen = isHappy ? 180 : 130;
+            
+            // Zet de mond op een willekeurige "praat-hoogte"
+            mouthElement.style.height = (baseH + Math.random() * maxOpen) + "px";
+        }
+
         function speak(text) {
             const emo = document.body.className;
             if (emo === 'dead' || emo === 'hidden') return;
             
-            window.speechSynthesis.cancel(); 
-            
+            window.speechSynthesis.cancel();
+            if (mouthInterval) clearInterval(mouthInterval);
+
             const utter = new SpeechSynthesisUtterance(text);
             utter.lang = 'nl-NL';
+            if (bestDutchVoice) utter.voice = bestDutchVoice;
             
-            if (bestDutchVoice) {
-                utter.voice = bestDutchVoice;
-            }
-            
-            // --- DYNAMISCHE STEM-INSTELLINGEN PER EMOTIE ---
+            // Emotie-instellingen
             if (emo === 'super-blij') { 
-                // Vrolijk: Iets hoger en sneller, heel enthousiast
-                utter.pitch = 1.2; 
-                utter.rate = 1.2; 
-                document.body.classList.remove('robot-vibrate'); 
-            } 
-            else if (emo === 'angry') { 
-                // Boos/Eng: Lager en langzamer (dreigend)
-                // We blijven op 0.8 zodat Maarten vloeiend blijft maar wel zwaar klinkt
-                utter.pitch = 0.8; 
-                utter.rate = 0.85; 
-                document.body.classList.add('robot-vibrate'); 
-            }
-            else { 
-                // Normaal (bijv. bij 'slurpen' of standaard)
-                utter.pitch = 1.0; 
-                utter.rate = 1.0; 
+                utter.pitch = 1.1; utter.rate = 1.15; 
+                document.body.classList.remove('robot-vibrate');
+            } else if (emo === 'angry') { 
+                utter.pitch = 0.8; utter.rate = 0.85; 
+                document.body.classList.add('robot-vibrate');
+            } else {
+                utter.pitch = 1.0; utter.rate = 1.0;
                 document.body.classList.remove('robot-vibrate');
             }
-            // ----------------------------------------------
 
-            utter.onboundary = (event) => {
-                if (document.body.className === 'slurpen') return;
-                const m = document.getElementById('mouth');
-                let isHappy = document.body.classList.contains('super-blij');
-                let baseH = isHappy ? 200 : 40;
-                
-                let randomFactor = isHappy ? 160 : 120;
-                m.style.height = (baseH + Math.random() * randomFactor) + "px";
-                
-                setTimeout(() => m.style.height = baseH + "px", isHappy ? 50 : 70);
+            // Start de mond-beweging loop
+            utter.onstart = () => {
+                // De interval snelheid bepaalt hoe "druk" de mond beweegt (70ms is ideaal)
+                mouthInterval = setInterval(animateMouthTalk, 70);
             };
 
-            utter.onend = () => { 
-                document.getElementById('mouth').style.height = ""; 
-                document.body.classList.remove('robot-vibrate'); 
+            // Stop de mond-beweging als hij klaar is
+            utter.onend = () => {
+                if (mouthInterval) clearInterval(mouthInterval);
+                resetMouth();
+                document.body.classList.remove('robot-vibrate');
+            };
+
+            utter.onerror = () => {
+                if (mouthInterval) clearInterval(mouthInterval);
+                resetMouth();
             };
             
             window.speechSynthesis.speak(utter);
         }
 
-        setInterval(() => { if (!isSucking && !document.body.classList.contains('dead')) { const x = (Math.random()*40 - 20) + 75; const y = (Math.random()*40 - 20) + 75; document.getElementById('p1').style.left = x + "px"; document.getElementById('p1').style.top = y + "px"; document.getElementById('p2').style.left = x + "px"; document.getElementById('p2').style.top = y + "px"; } }, 2000);
-        setInterval(() => { if (!document.body.classList.contains('dead')) { document.body.classList.add('blink'); setTimeout(() => document.body.classList.remove('blink'), 150); } }, 4500);
+        // --- Ogen bewegen & Knipperen ---
+        setInterval(() => { 
+            if (!isSucking && !document.body.classList.contains('dead')) { 
+                const x = (Math.random()*40 - 20) + 75; 
+                const y = (Math.random()*40 - 20) + 75; 
+                document.getElementById('p1').style.left = x + "px"; 
+                document.getElementById('p1').style.top = y + "px"; 
+                document.getElementById('p2').style.left = x + "px"; 
+                document.getElementById('p2').style.top = y + "px"; 
+            } 
+        }, 2000);
+
+        setInterval(() => { 
+            if (!document.body.classList.contains('dead')) { 
+                document.body.classList.add('blink'); 
+                setTimeout(() => document.body.classList.remove('blink'), 150); 
+            } 
+        }, 4500);
     </script>
 </body>
 </html>
