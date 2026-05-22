@@ -242,14 +242,27 @@
                 utter.voice = bestDutchVoice;
             }
             
-            utter.pitch = 1.0; 
-            utter.rate = 1.0; 
-
+            // --- DYNAMISCHE STEM-INSTELLINGEN PER EMOTIE ---
             if (emo === 'super-blij') { 
+                // Vrolijk: Iets hoger en sneller, heel enthousiast
+                utter.pitch = 1.2; 
+                utter.rate = 1.2; 
                 document.body.classList.remove('robot-vibrate'); 
-            } else { 
+            } 
+            else if (emo === 'angry') { 
+                // Boos/Eng: Lager en langzamer (dreigend)
+                // We blijven op 0.8 zodat Maarten vloeiend blijft maar wel zwaar klinkt
+                utter.pitch = 0.8; 
+                utter.rate = 0.85; 
                 document.body.classList.add('robot-vibrate'); 
             }
+            else { 
+                // Normaal (bijv. bij 'slurpen' of standaard)
+                utter.pitch = 1.0; 
+                utter.rate = 1.0; 
+                document.body.classList.remove('robot-vibrate');
+            }
+            // ----------------------------------------------
 
             utter.onboundary = (event) => {
                 if (document.body.className === 'slurpen') return;
