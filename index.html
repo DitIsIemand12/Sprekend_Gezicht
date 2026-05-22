@@ -109,28 +109,46 @@
         let isSucking = false;
         let appStarted = false;
         
-        // --- NIEUW: Agressieve manier om de meest vloeiende stem te forceren ---
+        // --- NIEUW: Filter expliciet op NEDERLANDSE MAN (Geen BE) ---
         let bestDutchVoice = null;
         
         function loadVoices() {
             const voices = window.speechSynthesis.getVoices();
-            if (voices.length === 0) return; // Nog niet geladen, breek af
+            if (voices.length === 0) return;
 
-            // Zoek alle Nederlandse stemmen
-            let dutchVoices = voices.filter(v => v.lang.includes('nl'));
+            // Filter op 'nl', maar sluit 'be' (België) en 'BE' streng uit!
+            let dutchVoices = voices.filter(v => {
+                const lang = v.lang.toLowerCase();
+                return lang.includes('nl') && !lang.includes('be');
+            });
             
             if (dutchVoices.length > 0) {
-                // We geven de stemmen een 'score'. AI/Natural stemmen krijgen de hoogste score!
+                // We geven de stemmen punten. Maarten is de Edge AI Man, Frank is de Windows Offline Man.
                 dutchVoices.sort((a, b) => {
                     let scoreA = 0; let scoreB = 0;
+                    const nameA = a.name.toLowerCase();
+                    const nameB = b.name.toLowerCase();
                     
-                    // Edge Natural / Online stemmen (Vloeiendste optie)
-                    if (a.name.includes('Natural') || a.name.includes('Online')) scoreA += 10;
-                    // Google stemmen (Goede 2e optie)
-                    if (a.name.includes('Google')) scoreA += 5;
+                    // Geef gigantische bonuspunten aan de Nederlandse mannen
+                    if (nameA.includes('maarten')) scoreA += 50;
+                    if (nameB.includes('maarten')) scoreB += 50;
                     
-                    if (b.name.includes('Natural') || b.name.includes('Online')) scoreB += 10;
-                    if (b.name.includes('Google')) scoreB += 5;
+                    if (nameA.includes('frank')) scoreA += 30;
+                    if (nameB.includes('frank')) scoreB += 30;
+
+                    if (nameA.includes('xander')) scoreA += 30; // Voor als je ooit toch weer een iPad/Mac pakt
+                    if (nameB.includes('xander')) scoreB += 30;
+                    
+                    // Kwaliteitsbonus (Vloeiende AI stem)
+                    if (nameA.includes('natural') || nameA.includes('online')) scoreA += 10;
+                    if (nameB.includes('natural') || nameB.includes('online')) scoreB += 10;
+                    
+                    if (nameA.includes('google')) scoreA += 5;
+                    if (nameB.includes('google')) scoreB += 5;
+                    
+                    // Strafpunten voor bekende vrouwenstemmen (zodat hij die negeert)
+                    if (nameA.includes('colette') || nameA.includes('fenna')) scoreA -= 20;
+                    if (nameB.includes('colette') || nameB.includes('fenna')) scoreB -= 20;
                     
                     return scoreB - scoreA; // Sorteer hoogste score bovenaan
                 });
@@ -140,7 +158,6 @@
             }
         }
         
-        // Windows/Browsers laden stemmen soms pas seconden later in, dit forceert het:
         window.speechSynthesis.onvoiceschanged = loadVoices;
         loadVoices(); 
         setTimeout(loadVoices, 500);
@@ -221,7 +238,6 @@
             const utter = new SpeechSynthesisUtterance(text);
             utter.lang = 'nl-NL';
             
-            // Zet de geselecteerde top-stem erin
             if (bestDutchVoice) {
                 utter.voice = bestDutchVoice;
             }
