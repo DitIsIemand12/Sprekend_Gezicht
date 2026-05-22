@@ -2,7 +2,7 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <title>Master Tablet - Ultimate Expression</title>
+    <title>Master Tablet - Ultimate Man Edition</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
@@ -34,7 +34,7 @@
         .mouth { 
             width: var(--m-w); height: var(--m-h); background: var(--accent); border-radius: 100px; 
             box-shadow: 0 0 50px var(--glow); transform: translate(var(--m-x), var(--m-y)); 
-            will-change: height; /* Zorgt voor ultra-vloeiende animatie op de videokaart */
+            will-change: height; 
         }
 
         /* MODI */
@@ -55,11 +55,15 @@
         .dead .eye { background: #666; box-shadow: none; }
         .dead .mouth { height: 10px; width: 300px; opacity: 0.5; }
 
+        /* Animatie voor trillen bij boos */
         .angry.robot-vibrate #face-wrapper { animation: vibrate 0.1s infinite; }
         @keyframes vibrate { 0% { transform: scale(1.2) translate(2px, 2px); } 50% { transform: scale(1.2) translate(-2px, -2px); } 100% { transform: scale(1.2) translate(2px, -2px); } }
         
         @keyframes suck { from { transform: translate(200px, 80px) scale(0.95); } to { transform: translate(200px, 80px) scale(1.05); } }
-        .blink .eye { transform: scaleY(0.05); }
+        
+        /* OOG KNIPPER EFFECT - Alleen voor de ogen */
+        .eye-blink { transform: scaleY(0.05) !important; }
+
         #overlay { position: fixed; inset: 0; background: #000; color: #0f0; display: flex; justify-content: center; align-items: center; z-index: 1000; cursor: pointer; font-size: 30px; font-weight: bold; font-family: monospace; }
         #particle-canvas { position: absolute; inset: 0; z-index: 10; pointer-events: none; }
     </style>
@@ -71,12 +75,12 @@
     
     <div id="face-wrapper">
         <div class="eyes">
-            <div class="eye">
+            <div id="left-eye" class="eye">
                 <div class="eyebrow l"></div>
                 <div class="pupil" id="p1"></div>
                 <div class="cross"></div>
             </div>
-            <div class="eye">
+            <div id="right-eye" class="eye">
                 <div class="eyebrow r"></div>
                 <div class="pupil" id="p2"></div>
                 <div class="cross"></div>
@@ -109,45 +113,41 @@
         let appStarted = false;
         let isSpeaking = false;
 
-        // --- MOND FYSIKA ENGINE (Lerp) ---
+        // --- MOND FYSIKA ---
         let currentMouthH = 40;
         let targetMouthH = 40;
         
         function updateMouthPhysics() {
             const emo = document.body.className;
-            
-            // Als we niet praten, is het doel de ruststand
             if (!isSpeaking) {
                 if (emo === 'super-blij') targetMouthH = 200;
                 else if (emo === 'dead') targetMouthH = 10;
                 else if (emo === 'slurpen') targetMouthH = 250;
                 else targetMouthH = 40;
             }
-
-            // LERP: Beweeg currentMouthH een percentage (0.2) richting targetMouthH
-            // Dit zorgt voor de vloeiende, zachte beweging.
             let diff = targetMouthH - currentMouthH;
             currentMouthH += diff * 0.25; 
-
-            // Pas toe op element
             mouthEl.style.height = currentMouthH + "px";
-            
             requestAnimationFrame(updateMouthPhysics);
         }
-        updateMouthPhysics(); // Start de motor
+        updateMouthPhysics();
 
-        // --- Stemmen ---
+        // --- STEM SELECTIE (MAN NL) ---
         let bestDutchVoice = null;
         function loadVoices() {
             const voices = window.speechSynthesis.getVoices();
             let dutchVoices = voices.filter(v => v.lang.includes('nl') && !v.lang.toLowerCase().includes('be'));
+            
             if (dutchVoices.length > 0) {
                 dutchVoices.sort((a, b) => {
                     let sA = 0; let sB = 0;
                     if (a.name.includes('Maarten')) sA += 50; if (b.name.includes('Maarten')) sB += 50;
+                    if (a.name.includes('Frank')) sA += 20; if (b.name.includes('Frank')) sB += 20;
                     return sB - sA;
                 });
                 bestDutchVoice = dutchVoices[0];
+                // NIEUW: Console log om te zien welke stem actief is
+                console.log("%c[STEM SYSTEEM] Geselecteerde stem: " + bestDutchVoice.name, "color: #00ff00; font-weight: bold;");
             }
         }
         window.speechSynthesis.onvoiceschanged = loadVoices;
@@ -156,7 +156,7 @@
         function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
         window.onresize = resize; resize();
 
-        // --- Particles ---
+        // --- PARTICLES ---
         class EnergyWisp {
             constructor() { this.reset(); }
             reset() { this.x = canvas.width + Math.random() * 500; this.y = canvas.height + Math.random() * 500; this.size = Math.random() * 8 + 4; this.history = []; this.speed = Math.random() * 0.1 + 0.05; this.color = Math.random() > 0.2 ? '#0f0' : '#fff'; }
@@ -185,6 +185,7 @@
         }
         animate();
 
+        // --- APP START & FIREBASE ---
         function startApp() {
             if (appStarted) return; appStarted = true;
             document.getElementById('overlay').style.display = 'none';
@@ -202,6 +203,7 @@
             });
         }
 
+        // --- SPRAAK & MOND SYNC ---
         function speak(text) {
             const emo = document.body.className;
             if (emo === 'dead' || emo === 'hidden') return;
@@ -214,36 +216,45 @@
             if (emo === 'super-blij') { utter.pitch = 1.1; utter.rate = 1.1; } 
             else if (emo === 'angry') { utter.pitch = 0.8; utter.rate = 0.85; document.body.classList.add('robot-vibrate'); }
 
-            // --- DE NIEUWE SYNC LOGICA ---
             utter.onstart = () => { isSpeaking = true; };
-            
             utter.onboundary = (event) => {
                 if (event.name === 'word') {
                     const isHappy = document.body.classList.contains('super-blij');
                     const baseH = isHappy ? 200 : 40;
-                    
-                    // Schiet de target omhoog (mond open)
-                    // We variëren de opening voor een natuurlijker effect
                     targetMouthH = baseH + (Math.random() * 100 + 50);
-                    
-                    // Na een fractie van een seconde moet de mond weer richting ruststand
-                    setTimeout(() => {
-                        if(isSpeaking) targetMouthH = baseH;
-                    }, 80 / utter.rate);
+                    setTimeout(() => { if(isSpeaking) targetMouthH = baseH; }, 80 / utter.rate);
                 }
             };
-
-            utter.onend = () => { 
-                isSpeaking = false; 
-                document.body.classList.remove('robot-vibrate'); 
-            };
-            
+            utter.onend = () => { isSpeaking = false; document.body.classList.remove('robot-vibrate'); };
             window.speechSynthesis.speak(utter);
         }
 
-        // Ogen & Knipperen
-        setInterval(() => { if (!isSucking && !document.body.classList.contains('dead')) { const x = (Math.random()*40 - 20) + 75; const y = (Math.random()*40 - 20) + 75; document.getElementById('p1').style.left = x + "px"; document.getElementById('p1').style.top = y + "px"; document.getElementById('p2').style.left = x + "px"; document.getElementById('p2').style.top = y + "px"; } }, 2000);
-        setInterval(() => { if (!document.body.classList.contains('dead')) { document.body.classList.add('blink'); setTimeout(() => document.body.classList.remove('blink'), 150); } }, 4500);
+        // --- LOSSE OGEN ANIMATIE (GEEN MOND MEER) ---
+        // Ogen laten bewegen
+        setInterval(() => { 
+            if (!isSucking && !document.body.classList.contains('dead')) { 
+                const x = (Math.random()*40 - 20) + 75; 
+                const y = (Math.random()*40 - 20) + 75; 
+                document.getElementById('p1').style.left = x + "px"; 
+                document.getElementById('p1').style.top = y + "px"; 
+                document.getElementById('p2').style.left = x + "px"; 
+                document.getElementById('p2').style.top = y + "px"; 
+            } 
+        }, 2000);
+
+        // Ogen knipperen (Targets nu specifiek de oog-id's, NIET de body)
+        setInterval(() => { 
+            if (!document.body.classList.contains('dead')) { 
+                const le = document.getElementById('left-eye');
+                const re = document.getElementById('right-eye');
+                le.classList.add('eye-blink'); 
+                re.classList.add('eye-blink'); 
+                setTimeout(() => {
+                    le.classList.remove('eye-blink');
+                    re.classList.remove('eye-blink');
+                }, 150); 
+            } 
+        }, 4500);
     </script>
 </body>
 </html>
