@@ -10,7 +10,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
         body { font-family: sans-serif; background: #121212; color: #eee; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-        .card { background: #1e1e1e; width: 90%; max-width: 400px; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #333; text-align: center; }
+        .card { background: #1e1e1e; width: 90%; max-width: 400px; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #333; text-align: center; max-height: 95vh; overflow-y: auto; }
         input { width: 100%; padding: 15px; background: #252525; border: 1px solid #444; border-radius: 12px; color: #fff; font-size: 16px; box-sizing: border-box; margin-bottom: 10px; outline: none; }
         button { width: 100%; padding: 15px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 15px; transition: 0.2s; text-transform: uppercase; margin-top: 5px; }
         
@@ -23,10 +23,26 @@
         .btn-blij { background: #024; color: #08f; border: 1px solid #08f; }
         .btn-special { background: #444; color: #fff; }
         .btn-dead { background: #000; color: #aaa; border: 2px solid #555; }
-        .btn-speak { background: #fff; color: #000; margin-top: 15px; }
+        .btn-speak { background: #fff; color: #000; }
         
         .error { color: #ff4444; font-size: 12px; margin-top: 10px; }
         h3 { color: #666; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; margin-top: 20px; }
+        
+        /* Nieuwe stijlen voor de zinnen lijst */
+        .input-group { display: flex; gap: 8px; margin-top: 15px; }
+        .btn-save { width: 60px; background: #444; color: #fff; font-size: 20px; padding: 0; margin: 0; margin-bottom: 10px; }
+        
+        #saved-texts-container { display: flex; flex-direction: column; gap: 8px; max-height: 180px; overflow-y: auto; margin-top: 10px; text-align: left; padding-right: 5px; }
+        .saved-item { background: #2a2a2a; padding: 10px 12px; border-radius: 8px; font-size: 14px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; border: 1px solid #333; transition: 0.2s;}
+        .saved-item:hover { background: #3a3a3a; border-color: #555; }
+        .saved-item span { flex-grow: 1; pointer-events: none; }
+        .del-btn { width: auto; background: #500; color: #f44; border: none; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; margin: 0; text-transform: none; }
+        .del-btn:hover { background: #f44; color: #fff; }
+        
+        /* Scrollbar styling */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #1e1e1e; }
+        ::-webkit-scrollbar-thumb { background: #555; border-radius: 10px; }
     </style>
 </head>
 <body>
@@ -51,10 +67,19 @@
         <button class="btn-special" onclick="setEmo('hidden')">Verdwijnen</button>
         <button class="btn-dead" onclick="setEmo('dead')">Uitschakelen</button>
 
-        <h3>Spraak</h3>
-        <input type="text" id="speechText" placeholder="Typ je tekst..." autocomplete="off">
+        <h3>Spraak & Verhaallijn</h3>
+        <div class="input-group">
+            <input type="text" id="speechText" placeholder="Typ je tekst..." autocomplete="off">
+            <button class="btn-save" onclick="saveSentence()" title="Zin opslaan voor later">💾</button>
+        </div>
         <button class="btn-speak" onclick="say()">Verstuur Spraak</button>
-        <br><br>
+
+        <h3>Opgeslagen Zinnen</h3>
+        <div id="saved-texts-container">
+            <!-- Wordt gevuld door JavaScript -->
+        </div>
+
+        <br>
         <button onclick="logout()" style="background:transparent; color:#555; font-size:10px;">Uitloggen</button>
     </div>
 
@@ -72,14 +97,20 @@
         const auth = firebase.auth();
         const db = firebase.database();
 
+        let savedSentencesListener = null;
+
         // Check of we al ingelogd zijn
         auth.onAuthStateChanged(user => {
             if (user) {
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('admin-panel').style.display = 'block';
+                loadSavedSentences(); // Laad de zinnen als we inloggen
             } else {
                 document.getElementById('login-screen').style.display = 'block';
                 document.getElementById('admin-panel').style.display = 'none';
+                if(savedSentencesListener) {
+                    db.ref('saved_sentences').off('value', savedSentencesListener);
+                }
             }
         });
 
@@ -96,11 +127,81 @@
         function setEmo(emo) { db.ref('tablet_emotion').set(emo); }
 
         function say() {
-            const txt = document.getElementById('speechText').value;
+            const txt = document.getElementById('speechText').value.trim();
             if(txt) {
+                // Stuur naar de tablet
                 db.ref('tablet_speech').set({ text: txt, time: Date.now() });
+                
+                // Optioneel: check of deze tekst al in de historie staat, zo niet, sla hem op
+                checkAndSaveHistory(txt);
+                
                 document.getElementById('speechText').value = "";
             }
+        }
+
+        // Functie om handmatig een zin op te slaan (via 💾 knop)
+        function saveSentence() {
+            const txt = document.getElementById('speechText').value.trim();
+            if(txt) {
+                db.ref('saved_sentences').push({ text: txt, time: Date.now() });
+                document.getElementById('speechText').value = ""; // Maak veld leeg na opslaan
+            }
+        }
+
+        // Check of de zin al is opgeslagen, anders auto-save bij het versturen
+        function checkAndSaveHistory(txt) {
+            db.ref('saved_sentences').orderByChild('text').equalTo(txt).once('value', snapshot => {
+                if(!snapshot.exists()) {
+                    db.ref('saved_sentences').push({ text: txt, time: Date.now() });
+                }
+            });
+        }
+
+        // Laad de opgeslagen zinnen en zet ze in de lijst
+        function loadSavedSentences() {
+            savedSentencesListener = db.ref('saved_sentences').orderByChild('time').on('value', snapshot => {
+                const container = document.getElementById('saved-texts-container');
+                container.innerHTML = ''; // Maak leeg voor refresh
+                
+                const items = [];
+                snapshot.forEach(child => {
+                    items.push({ id: child.key, ...child.val() });
+                });
+                
+                // Laatste zinnen bovenaan (reverse)
+                items.reverse().forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'saved-item';
+                    
+                    // Klikken op de div zet de tekst in het invoerveld
+                    div.onclick = (e) => {
+                        if(e.target.tagName !== 'BUTTON') {
+                            document.getElementById('speechText').value = item.text;
+                            document.getElementById('speechText').focus();
+                        }
+                    };
+                    
+                    const span = document.createElement('span');
+                    span.innerText = item.text;
+                    
+                    const delBtn = document.createElement('button');
+                    delBtn.className = 'del-btn';
+                    delBtn.innerText = 'X';
+                    delBtn.title = "Verwijder zin";
+                    delBtn.onclick = (e) => {
+                        e.stopPropagation(); // Zorgt dat de zin niet in het invoerveld komt bij verwijderen
+                        db.ref('saved_sentences').child(item.id).remove();
+                    };
+                    
+                    div.appendChild(span);
+                    div.appendChild(delBtn);
+                    container.appendChild(div);
+                });
+
+                if(items.length === 0) {
+                    container.innerHTML = '<span style="color:#666; font-size:12px; font-style:italic;">Nog geen zinnen opgeslagen...</span>';
+                }
+            });
         }
     </script>
 </body>
