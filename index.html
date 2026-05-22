@@ -2,7 +2,7 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <title>iPad Pro - Expressive Happy Edition</title>
+    <title>Master Tablet - Ultimate Expression</title>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
@@ -34,8 +34,7 @@
         .mouth { 
             width: var(--m-w); height: var(--m-h); background: var(--accent); border-radius: 100px; 
             box-shadow: 0 0 50px var(--glow); transform: translate(var(--m-x), var(--m-y)); 
-            /* 'Cubic-bezier' maakt de beweging elastisch en natuurlijker */
-            transition: width 0.4s, height 0.06s cubic-bezier(0.175, 0.885, 0.32, 1.275), transform 0.6s, border-radius 0.4s;
+            will-change: height; /* Zorgt voor ultra-vloeiende animatie op de videokaart */
         }
 
         /* MODI */
@@ -104,13 +103,40 @@
         const canvas = document.getElementById('particle-canvas');
         const ctx = canvas.getContext('2d');
         const slurpAudio = document.getElementById('slurpSound');
-        const mouthElement = document.getElementById('mouth');
-        
+        const mouthEl = document.getElementById('mouth');
+
         let isSucking = false;
         let appStarted = false;
-        let mouthInterval = null; // Voor de animatie-loop van de mond
+        let isSpeaking = false;
+
+        // --- MOND FYSIKA ENGINE (Lerp) ---
+        let currentMouthH = 40;
+        let targetMouthH = 40;
         
-        // --- Stemmen selectie ---
+        function updateMouthPhysics() {
+            const emo = document.body.className;
+            
+            // Als we niet praten, is het doel de ruststand
+            if (!isSpeaking) {
+                if (emo === 'super-blij') targetMouthH = 200;
+                else if (emo === 'dead') targetMouthH = 10;
+                else if (emo === 'slurpen') targetMouthH = 250;
+                else targetMouthH = 40;
+            }
+
+            // LERP: Beweeg currentMouthH een percentage (0.2) richting targetMouthH
+            // Dit zorgt voor de vloeiende, zachte beweging.
+            let diff = targetMouthH - currentMouthH;
+            currentMouthH += diff * 0.25; 
+
+            // Pas toe op element
+            mouthEl.style.height = currentMouthH + "px";
+            
+            requestAnimationFrame(updateMouthPhysics);
+        }
+        updateMouthPhysics(); // Start de motor
+
+        // --- Stemmen ---
         let bestDutchVoice = null;
         function loadVoices() {
             const voices = window.speechSynthesis.getVoices();
@@ -119,19 +145,18 @@
                 dutchVoices.sort((a, b) => {
                     let sA = 0; let sB = 0;
                     if (a.name.includes('Maarten')) sA += 50; if (b.name.includes('Maarten')) sB += 50;
-                    if (a.name.includes('Natural')) sA += 10; if (b.name.includes('Natural')) sB += 10;
                     return sB - sA;
                 });
                 bestDutchVoice = dutchVoices[0];
             }
         }
         window.speechSynthesis.onvoiceschanged = loadVoices;
-        loadVoices(); 
+        loadVoices();
 
         function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
         window.onresize = resize; resize();
 
-        // --- Energie particles ---
+        // --- Particles ---
         class EnergyWisp {
             constructor() { this.reset(); }
             reset() { this.x = canvas.width + Math.random() * 500; this.y = canvas.height + Math.random() * 500; this.size = Math.random() * 8 + 4; this.history = []; this.speed = Math.random() * 0.1 + 0.05; this.color = Math.random() > 0.2 ? '#0f0' : '#fff'; }
@@ -152,7 +177,7 @@
         function animate() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             if (isSucking && !document.body.classList.contains('hidden')) {
-                const mPos = mouthElement.getBoundingClientRect();
+                const mPos = mouthEl.getBoundingClientRect();
                 const tx = mPos.left + mPos.width / 2; const ty = mPos.top + mPos.height / 2;
                 particles.forEach(p => { p.update(tx, ty); p.draw(); });
             }
@@ -160,136 +185,65 @@
         }
         animate();
 
-        // --- Firebase & App Start ---
-        let initialLoad = true;
-        let lastSpokenTime = 0;
-
         function startApp() {
-            if (appStarted) return; 
-            appStarted = true;
+            if (appStarted) return; appStarted = true;
             document.getElementById('overlay').style.display = 'none';
-            
             db.ref('tablet_emotion').on('value', snap => {
                 const emo = snap.val() || 'angry';
                 document.body.className = emo;
                 isSucking = (emo === 'slurpen');
                 if (isSucking && !document.body.classList.contains('hidden')) slurpAudio.play(); else { slurpAudio.pause(); slurpAudio.currentTime = 0; }
-                resetMouth();
             });
-            
+            let initialLoad = true; let lastSpokenTime = 0;
             db.ref('tablet_speech').on('value', snap => {
-                const data = snap.val(); 
-                if (!data) return;
+                const data = snap.val(); if (!data) return;
                 if (initialLoad) { initialLoad = false; lastSpokenTime = data.time; return; }
-                if (data.time !== lastSpokenTime) {
-                    lastSpokenTime = data.time;
-                    speak(data.text);
-                }
+                if (data.time !== lastSpokenTime) { lastSpokenTime = data.time; speak(data.text); }
             });
-        }
-
-        // --- DE MOND MOTOR ---
-        function resetMouth() {
-            const emo = document.body.className;
-            if (emo === 'super-blij') mouthElement.style.height = "200px";
-            else if (emo === 'dead') mouthElement.style.height = "10px";
-            else mouthElement.style.height = "40px";
-        }
-
-        function animateMouthTalk() {
-            const emo = document.body.className;
-            if (emo === 'slurpen' || emo === 'dead' || emo === 'hidden') return;
-
-            let isHappy = (emo === 'super-blij');
-            let baseH = isHappy ? 200 : 40;
-            let maxOpen = isHappy ? 180 : 130;
-            
-            // Zet de mond op een willekeurige "praat-hoogte"
-            mouthElement.style.height = (baseH + Math.random() * maxOpen) + "px";
         }
 
         function speak(text) {
-    const emo = document.body.className;
-    if (emo === 'dead' || emo === 'hidden') return;
-    
-    // Stop huidige spraak
-    window.speechSynthesis.cancel();
-    
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.lang = 'nl-NL';
-    if (bestDutchVoice) utter.voice = bestDutchVoice;
-    
-    // Instellingen per emotie
-    if (emo === 'super-blij') { 
-        utter.pitch = 1.1; utter.rate = 1.15; 
-    } else if (emo === 'angry') { 
-        utter.pitch = 0.8; utter.rate = 0.85; 
-    } else {
-        utter.pitch = 1.0; utter.rate = 1.0;
-    }
+            const emo = document.body.className;
+            if (emo === 'dead' || emo === 'hidden') return;
+            
+            window.speechSynthesis.cancel();
+            const utter = new SpeechSynthesisUtterance(text);
+            utter.lang = 'nl-NL';
+            if (bestDutchVoice) utter.voice = bestDutchVoice;
+            
+            if (emo === 'super-blij') { utter.pitch = 1.1; utter.rate = 1.1; } 
+            else if (emo === 'angry') { utter.pitch = 0.8; utter.rate = 0.85; document.body.classList.add('robot-vibrate'); }
 
-    // boundary event vuurt exact als er een woord begint
-    utter.onboundary = (event) => {
-        if (event.name === 'word') {
-            const m = document.getElementById('mouth');
-            let isHappy = document.body.classList.contains('super-blij');
-            let baseH = isHappy ? 200 : 40;
+            // --- DE NIEUWE SYNC LOGICA ---
+            utter.onstart = () => { isSpeaking = true; };
             
-            // Bepaal hoe ver de mond open gaat op basis van de lengte van het woord
-            // (Lange woorden = grotere mond)
-            let wordLength = event.charLength || 5;
-            let openFactor = Math.min(wordLength * 20, 150); 
+            utter.onboundary = (event) => {
+                if (event.name === 'word') {
+                    const isHappy = document.body.classList.contains('super-blij');
+                    const baseH = isHappy ? 200 : 40;
+                    
+                    // Schiet de target omhoog (mond open)
+                    // We variëren de opening voor een natuurlijker effect
+                    targetMouthH = baseH + (Math.random() * 100 + 50);
+                    
+                    // Na een fractie van een seconde moet de mond weer richting ruststand
+                    setTimeout(() => {
+                        if(isSpeaking) targetMouthH = baseH;
+                    }, 80 / utter.rate);
+                }
+            };
+
+            utter.onend = () => { 
+                isSpeaking = false; 
+                document.body.classList.remove('robot-vibrate'); 
+            };
             
-            // Open de mond
-            m.style.height = (baseH + openFactor) + "px";
-            
-            // Sluit de mond weer na een korte tijd (gebaseerd op spreeksnelheid)
-            let closeDelay = 100 / utter.rate; 
-            setTimeout(() => {
-                m.style.height = baseH + "px";
-            }, closeDelay);
+            window.speechSynthesis.speak(utter);
         }
-    };
 
-    utter.onstart = () => {
-        if (emo === 'angry') document.body.classList.add('robot-vibrate');
-    };
-
-    utter.onend = () => {
-        resetMouth();
-        document.body.classList.remove('robot-vibrate');
-    };
-
-    window.speechSynthesis.speak(utter);
-}
-
-// Hulpmiddel om mond naar de ruststand te brengen
-function resetMouth() {
-    const m = document.getElementById('mouth');
-    const emo = document.body.className;
-    if (emo === 'super-blij') m.style.height = "200px";
-    else if (emo === 'dead') m.style.height = "10px";
-    else m.style.height = "40px";
-}
-
-        // --- Ogen bewegen & Knipperen ---
-        setInterval(() => { 
-            if (!isSucking && !document.body.classList.contains('dead')) { 
-                const x = (Math.random()*40 - 20) + 75; 
-                const y = (Math.random()*40 - 20) + 75; 
-                document.getElementById('p1').style.left = x + "px"; 
-                document.getElementById('p1').style.top = y + "px"; 
-                document.getElementById('p2').style.left = x + "px"; 
-                document.getElementById('p2').style.top = y + "px"; 
-            } 
-        }, 2000);
-
-        setInterval(() => { 
-            if (!document.body.classList.contains('dead')) { 
-                document.body.classList.add('blink'); 
-                setTimeout(() => document.body.classList.remove('blink'), 150); 
-            } 
-        }, 4500);
+        // Ogen & Knipperen
+        setInterval(() => { if (!isSucking && !document.body.classList.contains('dead')) { const x = (Math.random()*40 - 20) + 75; const y = (Math.random()*40 - 20) + 75; document.getElementById('p1').style.left = x + "px"; document.getElementById('p1').style.top = y + "px"; document.getElementById('p2').style.left = x + "px"; document.getElementById('p2').style.top = y + "px"; } }, 2000);
+        setInterval(() => { if (!document.body.classList.contains('dead')) { document.body.classList.add('blink'); setTimeout(() => document.body.classList.remove('blink'), 150); } }, 4500);
     </script>
 </body>
 </html>
