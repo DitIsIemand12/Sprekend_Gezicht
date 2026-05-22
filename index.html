@@ -88,7 +88,7 @@
     
     <audio id="slurpSound" loop src="slurp.mp3"></audio>
 
-    <script>
+   <script>
         const firebaseConfig = {
           apiKey: "AIzaSyDk5QfCGtERCKw6m3fg5FlzEDEVoBU4SU0",
           authDomain: "scouting-3886b.firebaseapp.com",
@@ -106,6 +106,24 @@
         const slurpAudio = document.getElementById('slurpSound');
         const faceWrapper = document.getElementById('face-wrapper');
         let isSucking = false;
+        
+        // --- NIEUW: Stemmen inladen en de beste kiezen ---
+        let bestDutchVoice = null;
+        function loadVoices() {
+            const voices = window.speechSynthesis.getVoices();
+            // Zoek naar Nederlandse stemmen
+            const dutchVoices = voices.filter(v => v.lang.includes('nl-NL'));
+            
+            if (dutchVoices.length > 0) {
+                // Probeer eerst een Google of Premium (iOS) stem te vinden (die klinken menselijker)
+                bestDutchVoice = dutchVoices.find(v => v.name.includes('Google') || v.name.includes('Premium')) 
+                              || dutchVoices[0]; // Pak anders de standaard NL stem
+            }
+        }
+        // Browsers laden stemmen soms met vertraging in, dit vangt dat op:
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+        loadVoices(); 
+        // --------------------------------------------------
 
         function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
         window.onresize = resize; resize();
@@ -160,13 +178,24 @@
             const utter = new SpeechSynthesisUtterance(text);
             utter.lang = 'nl-NL';
             
-            if (emo === 'super-blij') { 
-                utter.pitch = 2.0; utter.rate = 1.4; 
-                document.body.classList.remove('robot-vibrate'); // No shake in happy mode
-            } else { 
-                utter.pitch = 0.1; utter.rate = 0.6; 
-                document.body.classList.add('robot-vibrate'); // Shake only in angry mode
+            // Stel de beste stem in als we die gevonden hebben
+            if (bestDutchVoice) {
+                utter.voice = bestDutchVoice;
             }
+            
+            // --- AANGEPASTE NATUURLIJKERE INSTELLINGEN ---
+            if (emo === 'super-blij') { 
+                // Net iets hoger en enthousiaster, maar niet extreem
+                utter.pitch = 1.2; 
+                utter.rate = 1.1; 
+                document.body.classList.remove('robot-vibrate'); 
+            } else { 
+                // Net iets zwaarder en langzamer voor 'enge/boze' modus
+                utter.pitch = 0.7; 
+                utter.rate = 0.9; 
+                document.body.classList.add('robot-vibrate'); 
+            }
+            // ---------------------------------------------
 
             utter.onboundary = (event) => {
                 if (document.body.className === 'slurpen') return;
@@ -174,11 +203,9 @@
                 let isHappy = document.body.classList.contains('super-blij');
                 let baseH = isHappy ? 200 : 40;
                 
-                // Extra intense mouth opening for happy mode
                 let randomFactor = isHappy ? 160 : 120;
                 m.style.height = (baseH + Math.random() * randomFactor) + "px";
                 
-                // Return to base quicker for happy mode to look snappier
                 setTimeout(() => m.style.height = baseH + "px", isHappy ? 50 : 70);
             };
 
