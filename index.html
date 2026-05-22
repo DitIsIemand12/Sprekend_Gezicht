@@ -34,8 +34,8 @@
         .mouth { 
             width: var(--m-w); height: var(--m-h); background: var(--accent); border-radius: 100px; 
             box-shadow: 0 0 50px var(--glow); transform: translate(var(--m-x), var(--m-y)); 
-            /* Iets snellere transitie voor vlottere mondbeweging */
-            transition: width 0.4s, height 0.04s ease-out, transform 0.6s, border-radius 0.4s;
+            /* 'Cubic-bezier' maakt de beweging elastisch en natuurlijker */
+            transition: width 0.4s, height 0.06s cubic-bezier(0.175, 0.885, 0.32, 1.275), transform 0.6s, border-radius 0.4s;
         }
 
         /* MODI */
@@ -209,48 +209,68 @@
         }
 
         function speak(text) {
-            const emo = document.body.className;
-            if (emo === 'dead' || emo === 'hidden') return;
+    const emo = document.body.className;
+    if (emo === 'dead' || emo === 'hidden') return;
+    
+    // Stop huidige spraak
+    window.speechSynthesis.cancel();
+    
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = 'nl-NL';
+    if (bestDutchVoice) utter.voice = bestDutchVoice;
+    
+    // Instellingen per emotie
+    if (emo === 'super-blij') { 
+        utter.pitch = 1.1; utter.rate = 1.15; 
+    } else if (emo === 'angry') { 
+        utter.pitch = 0.8; utter.rate = 0.85; 
+    } else {
+        utter.pitch = 1.0; utter.rate = 1.0;
+    }
+
+    // boundary event vuurt exact als er een woord begint
+    utter.onboundary = (event) => {
+        if (event.name === 'word') {
+            const m = document.getElementById('mouth');
+            let isHappy = document.body.classList.contains('super-blij');
+            let baseH = isHappy ? 200 : 40;
             
-            window.speechSynthesis.cancel();
-            if (mouthInterval) clearInterval(mouthInterval);
-
-            const utter = new SpeechSynthesisUtterance(text);
-            utter.lang = 'nl-NL';
-            if (bestDutchVoice) utter.voice = bestDutchVoice;
+            // Bepaal hoe ver de mond open gaat op basis van de lengte van het woord
+            // (Lange woorden = grotere mond)
+            let wordLength = event.charLength || 5;
+            let openFactor = Math.min(wordLength * 20, 150); 
             
-            // Emotie-instellingen
-            if (emo === 'super-blij') { 
-                utter.pitch = 1.1; utter.rate = 1.15; 
-                document.body.classList.remove('robot-vibrate');
-            } else if (emo === 'angry') { 
-                utter.pitch = 0.8; utter.rate = 0.85; 
-                document.body.classList.add('robot-vibrate');
-            } else {
-                utter.pitch = 1.0; utter.rate = 1.0;
-                document.body.classList.remove('robot-vibrate');
-            }
-
-            // Start de mond-beweging loop
-            utter.onstart = () => {
-                // De interval snelheid bepaalt hoe "druk" de mond beweegt (70ms is ideaal)
-                mouthInterval = setInterval(animateMouthTalk, 70);
-            };
-
-            // Stop de mond-beweging als hij klaar is
-            utter.onend = () => {
-                if (mouthInterval) clearInterval(mouthInterval);
-                resetMouth();
-                document.body.classList.remove('robot-vibrate');
-            };
-
-            utter.onerror = () => {
-                if (mouthInterval) clearInterval(mouthInterval);
-                resetMouth();
-            };
+            // Open de mond
+            m.style.height = (baseH + openFactor) + "px";
             
-            window.speechSynthesis.speak(utter);
+            // Sluit de mond weer na een korte tijd (gebaseerd op spreeksnelheid)
+            let closeDelay = 100 / utter.rate; 
+            setTimeout(() => {
+                m.style.height = baseH + "px";
+            }, closeDelay);
         }
+    };
+
+    utter.onstart = () => {
+        if (emo === 'angry') document.body.classList.add('robot-vibrate');
+    };
+
+    utter.onend = () => {
+        resetMouth();
+        document.body.classList.remove('robot-vibrate');
+    };
+
+    window.speechSynthesis.speak(utter);
+}
+
+// Hulpmiddel om mond naar de ruststand te brengen
+function resetMouth() {
+    const m = document.getElementById('mouth');
+    const emo = document.body.className;
+    if (emo === 'super-blij') m.style.height = "200px";
+    else if (emo === 'dead') m.style.height = "10px";
+    else m.style.height = "40px";
+}
 
         // --- Ogen bewegen & Knipperen ---
         setInterval(() => { 
